@@ -22,9 +22,9 @@ def isvalidtime(time):
             raise InvalidUnit
         if timeduration <= 0:
             raise InvalidDuration
-        if (timeunit == "d" and timeduration >= 14)
-        or (timeunit == "h" and timeduration >= 336)
-        or (timeunit == "m" and timeduration >= 20160):
+        if (timeunit == "d" and timeduration >= 14) or (
+        timeunit == "h" and timeduration >= 336) or (
+        timeunit == "m" and timeduration >= 20160):
             raise InvalidDuration
     # returns a datetime object if time is valid
         date = datetime.datetime.now(datetime.UTC)
@@ -83,7 +83,7 @@ async def puppet(context, target: discord.Option(
         if not canrun:
             return
        
-        if hasrole(target, cfg.get("puppetrole")):
+        if pm.hasrole(target, cfg.get("puppetrole")):
             await target.remove_roles(inituser.guild.get_role(cfg.get("puppetrole")), reason = "Responsible user: " + str(inituser.name))
             await context.respond("Removed Puppet role from " + target.name + ".")
         else:
@@ -103,7 +103,7 @@ async def hand(context, target: discord.Option(
         if not canrun:
             return
        
-        if hasrole(targetuser, cfg.get("puppetrole")):
+        if pm.hasrole(target, cfg.get("handrole")):
             await target.remove_roles(inituser.guild.get_role(cfg.get("handrole")), reason = "Responsible user: " + str(inituser.name))
             await context.respond("Removed Hand role from " + target.name + ".")
         else:
@@ -119,7 +119,7 @@ async def setpuppetrole(context, roleid: discord.Option(
     description = "Role to be marked as a Puppet role.")
     ):
         commandpermissionlevel = 4
-        canrun = await pm.canrun(context, context.author, target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
         try:
@@ -135,7 +135,7 @@ async def sethandrole(context, roleid: discord.Option(
     description = "Role to be marked as a Hand role.")
     ):
         commandpermissionlevel = 4
-        canrun = await pm.canrun(context, context.author, target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
         try:
@@ -151,7 +151,7 @@ async def setarmrole(context, roleid: discord.Option(
     description = "Role to be marked as an Arm role.")
     ):
         commandpermissionlevel = 4
-        canrun = await pm.canrun(context, context.author, target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
         try:
