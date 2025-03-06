@@ -7,8 +7,6 @@ class permmanager:
             if commandpermissionlevel == -1:
                 raise PermissionException
             inituser_permissionlevel = self.getpermissionlevel(member)
-            
-            
             if inituser_permissionlevel < commandpermissionlevel:
                 await self.throwerror(context, "You do not have enough permissions to run this command.")
                 return False
@@ -22,8 +20,8 @@ class permmanager:
         return True
         
     def getpermissionlevel(self, member):
-        #if member.guild_permissions.manage_guild or member.id == self.cfg.get("master"):
-        #    return 4
+        if member.guild_permissions.manage_guild or member.id == self.cfg.get("master"):
+            return 4
         if self.hasrole(member, self.cfg.get("armrole")):
             return 3
         if self.hasrole(member, self.cfg.get("handrole")):
