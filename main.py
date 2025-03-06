@@ -27,37 +27,37 @@ def getpermissionlevel(member):
         return 1
     return 0
 
-@bot.slash_command(description = "testt")
-async def hello(context, name: discord.Option(str, description = "test2")):
-    name = name or context.author.name
-    text = "Hello, " + name + "!"
-    await context.respond(text)
-
-@bot.slash_command(description = "Toggle puppet")
+@bot.slash_command(description = "Toggles Puppet role for a user.")
 async def puppet(context, username: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
-    description = "User to toggle a puppet role for.")
+    description = "User to toggle a Puppet role for.")
     ):
         #await context.defer()
         inituser = context.author
         targetuser = username
         
-        inituser_roles = inituser.roles
-        #print(inituser_roles)
-        #role = username.guild.get_role(1346996001801506936)
-        targetuser_roles = targetuser.roles
-        guild_roles = context.author.guild.roles
-        for roles in inituser_roles:
-            print(roles.id)
-            #print("\n")
-       # await username.add_roles(role)
+        inituser_permlevel = getpermissionlevel(inituser)
+        targetuser_permlevel = getpermissionlevel(targetuser)
+        if inituser_permlevel < 2:
+            await context.respond("You do not have enough permissions. Your permission level: "
+                + str(inituser_permlevel) + ", required permission level: 2.",
+                ephemeral = True)
+            return
+        if targetuser_permlevel >= inituser_permlevel:
+            await context.respond("The permission level of target user (" + str(targetuser_permlevel)
+                + ") needs to be smaller than yours (" + str(inituser_permlevel) + ").",
+                ephemeral = True)
+            return
        
-        if hasrole(targetuser, 1346996001801506936):
-            await targetuser.remove_roles(inituser.guild.get_role(1346996001801506936))
+        if hasrole(targetuser, cfg.get("puppetrole")):
+            await targetuser.remove_roles(inituser.guild.get_role(cfg.get("puppetrole")), reason = "Responsible user: " + str(inituser.name))
+            await context.respond("Removed Puppet role from " + targetuser.name + ".")
         else:
-            await targetuser.add_roles(inituser.guild.get_role(1346996001801506936), reason = "Responsible user: " + str(inituser.name))
-        await context.respond("Toggled role.")
+            await targetuser.add_roles(inituser.guild.get_role(cfg.get("puppetrole")), reason = "Responsible user: " + str(inituser.name))
+            await context.respond("Added Puppet role to " + targetuser.name + ".")
+        
+
         
 @bot.slash_command(description = "Mark role as Puppet.")
 async def setpuppetrole(context, roleid: discord.Option(
@@ -65,6 +65,11 @@ async def setpuppetrole(context, roleid: discord.Option(
     required = True,
     description = "Role to be marked as a Puppet role.")
     ):
+        if getpermissionlevel(context.author) < 4:
+            await context.respond("You do not have enough permissions. Your permission level: "
+                + str(getpermissionlevel(context.author)) + ", required permission level: 4.",
+                ephemeral = True)
+            return
         try:
             cfg.set("puppetrole", roleid.id)
             await context.respond("Marked " + roleid.name + " as Puppet.")
