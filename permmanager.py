@@ -38,5 +38,5 @@ class permmanager:
         return False
     
     async def throwerror(self, context, reason):
-        await context.respond(reason)
+        await context.respond(reason, ephemeral = True)
         return
