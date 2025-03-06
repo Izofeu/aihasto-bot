@@ -5,6 +5,7 @@ import configparse
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 token = cfg.loadtoken()
+# cfg.set(key, value)
 
 bot = discord.Bot()
 

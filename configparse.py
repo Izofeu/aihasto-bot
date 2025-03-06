@@ -1,3 +1,5 @@
+import os
+
 class parseconfig:
     def __init__(self, configname):
         self.configname = configname
@@ -7,7 +9,7 @@ class parseconfig:
         try:
             configfile = open(self.configname, "rt")
             for line in configfile:
-                if line and not line.startswith("#"):
+                if line.strip() and not line.startswith("#"):
                     key, value = line.split("=", 1)
                     self.config[key.strip()] = self.converttype(value.strip())
             configfile.close()
@@ -42,3 +44,33 @@ class parseconfig:
             except:
                 print("Error reading the token file!")
                 return False
+    def set(self, keyname, valuename):
+        try:
+            keyname = str(keyname)
+            valuename = str(valuename) + "\n"
+            foundKey = False
+            firstRun = True
+            configfile = open(self.configname, "rt")
+            secondconfig = open(self.configname + ".new", "wt")
+            for line in configfile:
+                if line.strip() and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    if key.strip() == keyname.strip():
+                        key = keyname.strip()
+                        value = valuename
+                        foundKey = True
+                    if not firstRun:
+                        secondconfig.write("\n")
+                    else:
+                        firstRun = False
+                    secondconfig.write(key + "=" + value.strip())
+            if not foundKey:
+                secondconfig.write("\n" + keyname + "=" + valuename.strip())
+            configfile.close()
+            secondconfig.close()
+            os.remove(self.configname)
+            os.rename(self.configname + ".new", self.configname)
+            self.load()
+        except Exception as e:
+            print(e)
+        return
