@@ -19,9 +19,13 @@ def isvalidtime(time):
         timeduration = time[:-1]
         timeduration = int(timeduration)
         if timeunit not in ["m", "h", "d"]:
-            raise InvalidTimeoutUnit
+            raise InvalidUnit
         if timeduration <= 0:
-            raise InvalidTimeoutDuration
+            raise InvalidDuration
+        if (timeunit == "d" and timeduration >= 14)
+        or (timeunit == "h" and timeduration >= 336)
+        or (timeunit == "m" and timeduration >= 20160):
+            raise InvalidDuration
     # returns a datetime object if time is valid
         date = datetime.datetime.now(datetime.UTC)
         if timeunit == "m":
@@ -42,15 +46,17 @@ async def timeout(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
     description = "User to issue a time-out to."),
-    duration: discord.Option(discord.SlashCommandOptionType.string,
+    duration: discord.Option(
+    discord.SlashCommandOptionType.string,
     required = True,
     description = "The duration of a timeout. Examples: 2d - 2 days, 7m - 7 minutes, 3h - 3 hours."),
-    reason: discord.Option(discord.SlashCommandOptionType.string,
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
     required = True,
     description = "Reason for the timeout.")
     ):
-        reason = "Responsible user: " + context.author.name + ", reason:" + reason
-        reason = reason[:450]
+        reason = "Responsible user: " + context.author.name + ", reason: " + reason
+        reason = reason[:511]
         commandpermissionlevel = 1
         canrun = await pm.canrun(context, context.author, target, commandpermissionlevel)
         if not canrun:
@@ -60,7 +66,7 @@ async def timeout(context, target: discord.Option(
             await context.respond("Invalid timeout duration.", ephemeral = True)
             return
         
-        await target.timeout(time, reason)
+        await target.timeout(time, reason=reason)
         await context.respond("Timed out.")
         return
         
