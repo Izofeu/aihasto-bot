@@ -1,5 +1,4 @@
 import discord
-import aiomysql as sql
 import configparse
 import datetime
 import permmanager
@@ -55,13 +54,20 @@ async def flooder(context, target: discord.Option(
     description = "Reason for issuing the flooder (shows up in audit log).")
     ):
         commandpermissionlevel = 1
-        canrun = await pm.canrun(context, context.author, target=target commandpermissionlevel=commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
         time = isvalidtime(duration)
         if not time:
             await pm.throwerror(context, "Invalid flooder duration.")
             return
+        try:
+            await sqlm.addflooder(target.id, duration)
+        except:
+            await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
+            return
+        # todo add flooder here
+        await context.respond("Success.")
         return
 
 
@@ -109,7 +115,7 @@ async def timeout(context, target: discord.Option(
         reason = "Responsible user: " + context.author.name + ", reason: " + reason
         reason = reason[:511]
         commandpermissionlevel = 1
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
         time = isvalidtime(duration)
@@ -132,7 +138,7 @@ async def puppet(context, target: discord.Option(
     ):
         inituser = context.author
         commandpermissionlevel = 2
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
        
@@ -152,7 +158,7 @@ async def hand(context, target: discord.Option(
     ):
         inituser = context.author
         commandpermissionlevel = 3
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
        
