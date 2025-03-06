@@ -6,6 +6,8 @@ class parseconfig:
         self.config = {}
         self.loaded = False
     def load(self):
+        if self.loaded:
+            print("Reloading config file...")
         try:
             configfile = open(self.configname, "rt")
             for line in configfile:
@@ -71,6 +73,6 @@ class parseconfig:
             os.remove(self.configname)
             os.rename(self.configname + ".new", self.configname)
             self.load()
-        except Exception as e:
-            print(e)
+        except:
+            print("Error writing to config file.")
         return
