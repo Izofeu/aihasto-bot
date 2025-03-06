@@ -1,4 +1,5 @@
 import discord
+from discord.ext import tasks
 import configparse
 import datetime
 import permmanager
@@ -38,6 +39,29 @@ def isvalidtime(time):
         return False
     return False
     
+@bot.event
+async def on_ready():
+    print("Logged in to Discord.")
+    checkflooders.start()
+    
+@tasks.loop(seconds=60)
+async def checkflooders():
+    expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    if not expiredflooders:
+        return
+    guild = bot.get_guild(cfg.get("guild"))
+    flooderrole = guild.get_role(cfg.get("flooderrole"))
+    for flooderid in expiredflooders:
+        id = int(flooderid[0])
+        flooder = guild.get_member(id)
+        await sqlm.removeflooder(id)
+        try:
+            await flooder.remove_roles(flooderrole, reason = "Expired flooder role.")
+        except:
+            print("Couldn't remove flooder role from " + str(flooder) + ".")
+        
+    return
+    
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
 async def flooder(context, target: discord.Option(
@@ -58,16 +82,23 @@ async def flooder(context, target: discord.Option(
         if not canrun:
             return
         time = isvalidtime(duration)
+        untiltimestamp = int(time.timestamp())
         if not time:
             await pm.throwerror(context, "Invalid flooder duration.")
             return
         try:
-            await sqlm.addflooder(target.id, duration)
+            time = time.strftime("%Y-%m-%d %H:%M:%S")
+            await sqlm.addflooder(target.id, time)
         except:
             await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
             return
-        # todo add flooder here
-        await context.respond("Success.")
+        if not reason:
+            reason = "No reason issued."
+        reason = "Responsible user: " + context.author.name + ", duration: " + duration + ", reason: " + reason
+        reason = reason[:511]
+        flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+        await target.add_roles(flooderrole, reason = reason)
+        await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
         return
 
 
@@ -185,6 +216,10 @@ async def setmodroles(context, puppet: discord.Option(
     discord.SlashCommandOptionType.role,
     required = True,
     description = "Role to be marked as an Arm role."),
+    flooder: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Flooder role.")
     ):
         commandpermissionlevel = 4
         canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
@@ -194,7 +229,8 @@ async def setmodroles(context, puppet: discord.Option(
             cfg.set("puppetrole", puppet.id)
             cfg.set("handrole", hand.id)
             cfg.set("armrole", arm.id)
-            await context.respond("Marked " + puppet.name + " as Puppet, " + hand.name + " as Hand and " + arm.name + " as Arm.")
+            cfg.set("flooderrole", flooder.id)
+            await context.respond("Marked " + puppet.name + " as Puppet, " + hand.name + " as Hand, " + arm.name + " as Arm and " + flooder.name + " as Flooder.")
         except:
             await context.respond("Error setting roles.")
         return
