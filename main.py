@@ -163,7 +163,10 @@ async def flooder(context, target: discord.Option(
         # Add flooder role
         try:
             await target.add_roles(flooderrole, reason = modreason)
-            await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
+            try:
+                await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
+            except:
+                pass
             await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
             await logm.sendlog(logm.flooders, context.author, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
         except:
@@ -242,7 +245,10 @@ async def timeout(context, target: discord.Option(
             # Issue timeout
             modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
             await target.timeout(time, reason = modreason)
-            await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
+            try:
+                await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
+            except:
+                pass
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
             await logm.sendlog(logm.timeouts, context.author, target = target, duration = duration, reason = isemptyreason(reason))
         except:
