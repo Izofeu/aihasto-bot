@@ -124,9 +124,8 @@ async def unflooder(context, target: discord.Option(
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
             await target.remove_roles(flooderrole, reason = modreason)
             await context.respond("Removed flooder from " + target.name + ".")
-            await logm.sendlog(logm.flooders, context.author, target = target, mode = logm.removerole, reason = isemptyreason(reason))
-        except Exception as e:
-            print(e)
+            await logm.sendlog(logm.flooders, context, target = target, mode = logm.removerole, reason = isemptyreason(reason))
+        except:
             await pm.throwerror(context, "Couldn't remove flooder from " + target.name + ".")
         return
     
@@ -168,7 +167,7 @@ async def flooder(context, target: discord.Option(
             except:
                 pass
             await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
-            await logm.sendlog(logm.flooders, context.author, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
         except:
             await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
             return
@@ -250,7 +249,7 @@ async def timeout(context, target: discord.Option(
             except:
                 pass
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
-            await logm.sendlog(logm.timeouts, context.author, target = target, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.timeouts, context, target = target, duration = duration, reason = isemptyreason(reason))
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.")
         return
@@ -275,12 +274,12 @@ async def puppet(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("puppetrole")):
             await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
             await context.respond("Removed Puppet role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author, mode = logm.removerole, target = target, rolename = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, rolename = puppetrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
             await context.respond("Added Puppet role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author, mode = logm.addrole, target = target, rolename = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, rolename = puppetrole)
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
@@ -302,12 +301,12 @@ async def hand(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("handrole")):
             await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
             await context.respond("Removed Hand role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.removerole, target = target.name, rolename = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target.name, rolename = handrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
             await context.respond("Added Hand role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.addrole, target = target.name, rolename = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target.name, rolename = handrole)
         return
         
 
