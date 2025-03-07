@@ -155,6 +155,12 @@ async def flooder(context, target: discord.Option(
             await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
             return
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+        if not reason:
+            userreason = "No reason provided."
+        else:
+            userreason = reason[:511]
+        
+        await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + userreason + ".")
         reason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
         # Add flooder role
         await target.add_roles(flooderrole, reason = reason)
@@ -217,11 +223,13 @@ async def timeout(context, target: discord.Option(
         if not canrun:
             return
         time = isvalidtime(duration)
+        untiltimestamp = int(time.timestamp())
         if not time:
             await context.respond("Invalid timeout duration.", ephemeral = True)
             return
         try:
             # Issue timeout
+            await target.send(content = "You have been timed out by " + context.author.name + " for " + reason[:511] + ".")
             reason = sanitizereason(context.author.name, reason = reason, duration = duration)
             await target.timeout(time, reason = reason)
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
