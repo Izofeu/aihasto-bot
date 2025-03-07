@@ -16,6 +16,19 @@ bot = discord.Bot()
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 
+def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False):
+    finalreason = "Responsible user: " + author
+    if addedrolename:
+        finalreason += ", Added role: " + addedrolename
+    if removedrolename:
+        finalreason += ", Removed role: " + removedrolename
+    if duration:
+        finalreason += ", Duration: " + duration
+    if reason:
+        finalreason = finalreason + ", Reason: " + reason
+    finalreason = finalreason[:511]
+    return finalreason
+
 # Check if duration inputted by user in commands is valid
 def isvalidtime(time):
     try:
@@ -80,6 +93,31 @@ async def checkflooders():
             print("Couldn't remove flooder role from " + str(flooder) + ".")
     return
     
+@bot.slash_command(description = "Remove a flooder from a user.")
+async def unflooder(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to remove a flooder role from."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for removing the flooder (shows up in audit log).")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            await sqlm.removeflooder(target.id)
+            flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+            reason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
+            await target.remove_roles(flooderrole, reason = reason)
+            await context.respond("Removed flooder from " + target.name + ".")
+        except:
+            await pm.throwerror(context, "Couldn't remove flooder from " + target.name + ".")
+        return
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
 async def flooder(context, target: discord.Option(
@@ -116,11 +154,8 @@ async def flooder(context, target: discord.Option(
         except:
             await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
             return
-        if not reason:
-            reason = "No reason issued."
-        reason = "Responsible user: " + context.author.name + ", duration: " + duration + ", reason: " + reason
-        reason = reason[:511]
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+        reason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
         # Add flooder role
         await target.add_roles(flooderrole, reason = reason)
         await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
@@ -154,7 +189,7 @@ async def slowmode(context, target: discord.Option(
             await pm.throwerror(context, "Invalid slow mode duration. Allowed values: 0 - 21600 seconds.")
             return
         try:
-            await target.edit(reason = "Responsible user: " + context.author.name, slowmode_delay = delay)
+            await target.edit(reason = sanitizereason(context.author.name), slowmode_delay = delay)
         except:
             await pm.throwerror(context, "Unable to edit the channel - I don't have permission.")
             return
@@ -175,8 +210,6 @@ async def timeout(context, target: discord.Option(
     required = True,
     description = "Reason for the timeout.")
     ):
-        reason = "Responsible user: " + context.author.name + ", reason: " + reason
-        reason = reason[:511]
         # Command permission level
         commandpermissionlevel = 1
         # Permission check
@@ -189,7 +222,8 @@ async def timeout(context, target: discord.Option(
             return
         try:
             # Issue timeout
-            await target.timeout(time, reason=reason)
+            reason = sanitizereason(context.author.name, reason = reason, duration = duration)
+            await target.timeout(time, reason = reason)
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.")
@@ -211,12 +245,13 @@ async def puppet(context, target: discord.Option(
         if not canrun:
             return
         # If user has role, then remove it
+        puppetrole = inituser.guild.get_role(cfg.get("puppetrole"))
         if pm.hasrole(target, cfg.get("puppetrole")):
-            await target.remove_roles(inituser.guild.get_role(cfg.get("puppetrole")), reason = "Responsible user: " + str(inituser.name))
+            await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
             await context.respond("Removed Puppet role from " + target.name + ".")
         # User doesn't have role, remove it
         else:
-            await target.add_roles(inituser.guild.get_role(cfg.get("puppetrole")), reason = "Responsible user: " + str(inituser.name))
+            await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
             await context.respond("Added Puppet role to " + target.name + ".")
         return
             
@@ -231,16 +266,17 @@ async def hand(context, target: discord.Option(
         # Command permission level
         commandpermissionlevel = 3
         # Permission check
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        handrole = inituser.guild.get_role(cfg.get("handrole"))
         # If user has role, then remove it
         if pm.hasrole(target, cfg.get("handrole")):
-            await target.remove_roles(inituser.guild.get_role(cfg.get("handrole")), reason = "Responsible user: " + str(inituser.name))
+            await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
             await context.respond("Removed Hand role from " + target.name + ".")
         # User doesn't have role, remove it
         else:
-            await target.add_roles(inituser.guild.get_role(cfg.get("handrole")), reason = "Responsible user: " + str(inituser.name))
+            await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
             await context.respond("Added Hand role to " + target.name + ".")
         return
         
