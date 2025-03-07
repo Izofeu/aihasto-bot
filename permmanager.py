@@ -1,15 +1,28 @@
+# WARNING! These permission methods are sensitive as they safeguard the bot against misuse.
+# Any changes here could result in unauthorized users being able to run forbidden commands!
 class permmanager:
     def __init__(self, cfg):
+        # Prepare cfg
         self.cfg = cfg
         
     async def canrun(self, context, member, target=False, commandpermissionlevel=-1):
+        # This method checks if a member has permission to run a command.
+        # The permissions involve two checks:
+        # If a command is a general command that doesn't affect a specific user then
+        # only check if the user has the required permission.
+        # If a command affects another user, ensure that the user is below us
+        # in the role hierarchy. This also prevents self removal of roles
+        # because we are always equal in the role hierarchy.
         try:
+            # If permission level isn't set by us, return false
             if commandpermissionlevel == -1:
                 raise PermissionException
+            # Check permission level of the user who ran the command
             inituser_permissionlevel = self.getpermissionlevel(member)
             if inituser_permissionlevel < commandpermissionlevel:
                 await self.throwerror(context, "You do not have enough permissions to run this command.")
                 return False
+            # If a command affects another user, perform a hierarchy check
             if target:
                 targetuser_permissionlevel = self.getpermissionlevel(target)
                 if targetuser_permissionlevel >= inituser_permissionlevel:
@@ -20,6 +33,10 @@ class permmanager:
         return True
         
     def getpermissionlevel(self, member):
+        # This method returns permission level based on what roles the user has.
+        # Master is the bot coder who has the permission for debugging purposes.
+        # Manage servers permission is considered a top level permission
+        # that allows complete management over the bot.
         if member.guild_permissions.manage_guild or member.id == self.cfg.get("master"):
             return 4
         if self.hasrole(member, self.cfg.get("armrole")):
@@ -31,6 +48,7 @@ class permmanager:
         return 0
         
     def hasrole(self, member, role):
+        # This method checks if a member has a role.
         memberroles = member.roles
         for roles in memberroles:
             if role == roles.id:
