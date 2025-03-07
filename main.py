@@ -157,14 +157,7 @@ async def flooder(context, target: discord.Option(
         if not time:
             await pm.throwerror(context, "Invalid flooder duration.")
             return
-        try:
-            # Convert the time to SQL datetime format
-            time = time.strftime("%Y-%m-%d %H:%M:%S")
-            # Add flooder record to database
-            await sqlm.addflooder(target.id, time)
-        except:
-            await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
-            return
+        
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
         modreason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
         # Add flooder role
@@ -173,8 +166,16 @@ async def flooder(context, target: discord.Option(
             await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
             await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
             await logm.sendlog(logm.flooders, context.author, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
-        except Exception as e:
-            print(e)
+        except:
+            await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
+            return
+        try:
+            # Convert the time to SQL datetime format
+            time = time.strftime("%Y-%m-%d %H:%M:%S")
+            # Add flooder record to database
+            await sqlm.addflooder(target.id, time)
+        except:
+            await pm.throwerror(context, "Failure inserting a record into the database. Issued flooder may not be autoremoved.")
         return
 
 
@@ -357,7 +358,8 @@ async def setlogchannel(context, channel: discord.Option(
             return
         await context.respond("Set the log channel to <#" + str(channel.id) + ">.")
         cfg.set("logchannelid", channel.id)
-        logm.loadchannelid()
+        logm.loadlogchannelid()
+        logm.ready()
         return
             
 @bot.slash_command(description = "Get user's permission level.")

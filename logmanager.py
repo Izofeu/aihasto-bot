@@ -15,8 +15,9 @@ class logmanager:
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
+        print(self.logchannelid)
         if not self.logchannelid or self.logchannelid == 0:
-            raise Exception("test")
+            raise Exception("Invalid log channel id")
         return
     async def uploadlog(self, content, author):
         try:
