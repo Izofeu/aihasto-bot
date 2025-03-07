@@ -74,12 +74,15 @@ async def on_ready():
     print("Logged in to Discord.")
     # Start periodic task for checking expired flooders
     logm.ready()
+    await sqlm.condisconnect(0)
     checkflooders.start()
     
 @tasks.loop(seconds=60)
 async def checkflooders():
+    autosql = sqlmanager.sqlmanager(cfg)
+    await checkwarnings(autosql)
     # Get expired flooders as a tuple of user ids whose flooders have expired
-    expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    expiredflooders = await autosql.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     if not expiredflooders:
         return
     # Obtain guild object from guild id from config
@@ -101,6 +104,64 @@ async def checkflooders():
             # If role removal goes wrong, for example the user got the role removed manually, then ignore the error
             print("Couldn't remove flooder role from " + str(flooder) + ".")
     return
+async def checkwarnings(autosql):
+    await autosql.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    return
+    
+@bot.user_command(name = "Show warnings")
+async def showwarnings(context, member: discord.Member):
+    warnings = sqlm.getwarnings(member.id)
+    return
+    
+@bot.slash_command(description = "Removes all warnings from a user.")
+async def clearwarns(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to remove warnings from."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for removing the warnings.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            await sqlm.removewarnings(target.id)
+            await context.respond("Warnings for user " + target.name + " have been removed.")
+            await logm.sendlog(logm.warns, context, target = target, mode = logm.clearwarns, reason = isemptyreason(reason))
+        except:
+            await pm.throwerror(context, "Error removing warnings.")
+        return
+    
+@bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
+async def warn(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to issue a warning to."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for the warning. Gets sent to the user.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        expirydate = isvalidtime("3d").strftime("%Y-%m-%d %H:%M:%S")
+        await sqlm.addwarning(target.id, expirydate, isemptyreason(reason))
+        await context.respond("User " + target.name + " has been issued a warning for " + isemptyreason(reason) + ".")
+        await logm.sendlog(logm.warns, context, mode = logm.addwarn, target = target, reason = isemptyreason(reason))
+        try:
+            await target.send("You have been issued a warning by " + context.author.name + " for " + isemptyreason(reason) + ".")
+        except:
+            pass
+        return
     
 @bot.slash_command(description = "Remove a flooder from a user.")
 async def unflooder(context, target: discord.Option(

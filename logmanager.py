@@ -9,13 +9,16 @@ class logmanager:
         self.timeouts = 0
         self.roles = 1
         self.flooders = 2
+        self.warns = 3
         
         self.addrole = 0
         self.removerole = 1
         
+        self.addwarn = 0
+        self.clearwarns = 1
+        
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
-        print(self.logchannelid)
         if not self.logchannelid or self.logchannelid == 0:
             raise Exception("Invalid log channel id")
         return
@@ -39,6 +42,11 @@ class logmanager:
                 log = "A Flooder role has been issued to " + target.name + " by " + context.author.name + " for " + duration + " for " + reason + "."
             else:
                 log = "A Flooder role has been prematurely removed from " + target.name + " by " + context.author.name + " for " + reason + "."
+        elif category == self.warns:
+            if mode == self.addwarn:
+                log = "A warning has been issued to " + target.name + " by " + context.author.name + " for " + reason + "."
+            else:
+                log = context.author.name + " has cleared all warnings for " + target.name + " for " + reason + "."
         await self.uploadlog(log, context)
         return
     def ready(self):
