@@ -18,24 +18,27 @@ class logmanager:
         if not self.logchannelid or self.logchannelid == 0:
             raise Exception("test")
         return
-    async def uploadlog(self, content):
-        await self.logchannel.send(content)
+    async def uploadlog(self, content, author):
+        try:
+            await self.logchannel.send(content)
+        except:
+            await author.respond("Error sending a message in the log channel.", ephemeral = True)
         return
-    async def sendlog(self, category, author, mode = False, target = False, duration = False, reason = False, rolename = False):
+    async def sendlog(self, category, author, mode = False, target = False, duration = False, reason = False, role = False):
         log = "No appropriate log category has been found."
         if category == self.timeouts:
-            log = "A timeout has been issued to " + target + " by " + author + " for " + duration + " for " + reason + "."
+            log = "A timeout has been issued to " + target.name + " by " + author.name + " for " + duration + " for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
-                log = "A role " + rolename + " has been assigned to " + target + " by " + author + "."
+                log = "A role " + role.name + " has been assigned to " + target.name + " by " + author.name + "."
             else:
-                log = "A role " + rolename + " has been removed from " + target + " by " + author + "."
+                log = "A role " + role.name + " has been removed from " + target.name + " by " + author.name + "."
         elif category == self.flooders:
             if mode == self.addrole:
-                log = "A Flooder role has been issued to " + target + " by " + author + " for " + duration + " for " + reason + "."
+                log = "A Flooder role has been issued to " + target.name + " by " + author.name + " for " + duration + " for " + reason + "."
             else:
-                log = "A Flooder role has been prematurely removed from " + target + " by " + author + " for " + reason + "."
-        await self.uploadlog(log)
+                log = "A Flooder role has been prematurely removed from " + target.name + " by " + author.name + " for " + reason + "."
+        await self.uploadlog(log, author)
         return
     def ready(self):
         guild = self.bot.get_guild(self.cfg.get("guild"))

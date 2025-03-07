@@ -124,7 +124,7 @@ async def unflooder(context, target: discord.Option(
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
             await target.remove_roles(flooderrole, reason = modreason)
             await context.respond("Removed flooder from " + target.name + ".")
-            await logm.sendlog(logm.flooders, context.author.name, target = target.name, mode = logm.removerole, reason = isemptyreason(reason))
+            await logm.sendlog(logm.flooders, context.author, target = target, mode = logm.removerole, reason = isemptyreason(reason))
         except Exception as e:
             print(e)
             await pm.throwerror(context, "Couldn't remove flooder from " + target.name + ".")
@@ -172,7 +172,7 @@ async def flooder(context, target: discord.Option(
             await target.add_roles(flooderrole, reason = modreason)
             await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
             await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
-            await logm.sendlog(logm.flooders, context.author.name, mode = logm.addrole, target = target.name, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.flooders, context.author, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
         except Exception as e:
             print(e)
         return
@@ -243,7 +243,7 @@ async def timeout(context, target: discord.Option(
             await target.timeout(time, reason = modreason)
             await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
-            await logm.sendlog(logm.timeouts, context.author.name, target = target.name, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.timeouts, context.author, target = target, duration = duration, reason = isemptyreason(reason))
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.")
         return
@@ -268,12 +268,12 @@ async def puppet(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("puppetrole")):
             await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
             await context.respond("Removed Puppet role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.removerole, target = target.name, rolename = puppetrole.name)
+            await logm.sendlog(logm.roles, context.author, mode = logm.removerole, target = target, rolename = puppetrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
             await context.respond("Added Puppet role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.addrole, target = target.name, rolename = puppetrole.name)
+            await logm.sendlog(logm.roles, context.author, mode = logm.addrole, target = target, rolename = puppetrole)
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
@@ -295,12 +295,12 @@ async def hand(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("handrole")):
             await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
             await context.respond("Removed Hand role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.removerole, target = target.name, rolename = handrole.name)
+            await logm.sendlog(logm.roles, context.author.name, mode = logm.removerole, target = target.name, rolename = handrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
             await context.respond("Added Hand role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context.author.name, mode = logm.addrole, target = target.name, rolename = handrole.name)
+            await logm.sendlog(logm.roles, context.author.name, mode = logm.addrole, target = target.name, rolename = handrole)
         return
         
 
@@ -338,6 +338,26 @@ async def setmodroles(context, puppet: discord.Option(
             await context.respond("Marked " + puppet.name + " as Puppet, " + hand.name + " as Hand, " + arm.name + " as Arm and " + flooder.name + " as Flooder.")
         except:
             await context.respond("Error setting roles.")
+        return
+        
+@bot.slash_command(description = "Changes the channel of log messages.")
+async def setlogchannel(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to send logs to.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        if not str(channel.type) == "text":
+            await pm.throwerror(context, "The channel you've selected is not a text channel.")
+            return
+        await context.respond("Set the log channel to <#" + str(channel.id) + ">.")
+        cfg.set("logchannelid", channel.id)
+        logm.loadchannelid()
         return
             
 @bot.slash_command(description = "Get user's permission level.")
