@@ -74,15 +74,13 @@ async def on_ready():
     print("Logged in to Discord.")
     # Start periodic task for checking expired flooders
     logm.ready()
-    await sqlm.condisconnect(0)
     checkflooders.start()
     
 @tasks.loop(seconds=60)
 async def checkflooders():
-    autosql = sqlmanager.sqlmanager(cfg)
-    await checkwarnings(autosql)
+    await checkwarnings()
     # Get expired flooders as a tuple of user ids whose flooders have expired
-    expiredflooders = await autosql.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     if not expiredflooders:
         return
     # Obtain guild object from guild id from config
@@ -104,13 +102,27 @@ async def checkflooders():
             # If role removal goes wrong, for example the user got the role removed manually, then ignore the error
             print("Couldn't remove flooder role from " + str(flooder) + ".")
     return
-async def checkwarnings(autosql):
-    await autosql.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+async def checkwarnings():
+    await sqlm.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
 @bot.user_command(name = "Show warnings")
 async def showwarnings(context, member: discord.Member):
-    warnings = sqlm.getwarnings(member.id)
+    warningscount, warnings = await sqlm.getwarnings(member.id)
+    warningscount = warningscount[0][0]
+    if warningscount == 0:
+        message = member.name + " has not received any warnings."
+    else:
+        message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last two warnings:"
+        #print(warnings)
+        #print(len(warnings))
+        format = "%Y-%m-%d %H:%M:%S"
+        for warns in warnings:
+            date = warns[1] - datetime.timedelta(days = 3)
+            time = int(date.timestamp())
+            message += "\n<t:" + str(time) + ":R> - " + str(warns[2])
+            #print(warns[1])
+    await context.respond(message, ephemeral = True)
     return
     
 @bot.slash_command(description = "Removes all warnings from a user.")

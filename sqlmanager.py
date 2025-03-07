@@ -2,6 +2,7 @@ import asyncio
 import aiomysql as sqlm
 class sqlmanager:
     def __init__(self, cfg):
+        self.lock = asyncio.Lock()
         # Prepare cfg
         self.cfg = cfg
         self.dbuser = self.cfg.get("dbuser")
@@ -33,43 +34,44 @@ class sqlmanager:
                 print("Couldn't connect to database.")
         return
     async def query(self, query, params = False):
-        await self.condisconnect(0)
-        cur = await self.connection.cursor()
-        if self.firstRun:
-            # Run a create table if not exists query once
-            tablequery = (
-            "CREATE TABLE IF NOT EXISTS `flooders`" +
-            "(" +
-            "`id` INT NOT NULL AUTO_INCREMENT," +
-            "`account_id` varchar(40) NOT NULL UNIQUE," +
-            "`expiration_date` DATETIME NOT NULL," +
-            "PRIMARY KEY (id)" +
-            ");"
-            )
-            await cur.execute(tablequery)
-            tablequery = (
-            "CREATE TABLE IF NOT EXISTS `warns`" +
-            "(" +
-            "`id` INT NOT NULL AUTO_INCREMENT," +
-            "`account_id` varchar(40) NOT NULL," +
-            "`expiration_date` DATETIME NOT NULL," +
-            "`reason` VARCHAR(512) NOT NULL," +
-            "PRIMARY KEY (id)" +
-            ");"
-            )
-            await cur.execute(tablequery)
-            self.firstRun = False
-        # Execute our query
-        if params:
-            await cur.execute(query, params)
-        else:
-            await cur.execute(query)
-        # Fetch the result of a query
-        result = await cur.fetchall()
-        await cur.close()
-        # Close connection
-        await self.condisconnect(1)
-        # Return the query result
+        async with self.lock:
+            await self.condisconnect(0)
+            cur = await self.connection.cursor()
+            if self.firstRun:
+                # Run a create table if not exists query once
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `flooders`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL UNIQUE," +
+                "`expiration_date` DATETIME NOT NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `warns`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`expiration_date` DATETIME NOT NULL," +
+                "`reason` VARCHAR(512) NOT NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await cur.execute(tablequery)
+                self.firstRun = False
+            # Execute our query
+            if params:
+                await cur.execute(query, params)
+            else:
+                await cur.execute(query)
+            # Fetch the result of a query
+            result = await cur.fetchall()
+            await cur.close()
+            # Close connection
+            await self.condisconnect(1)
+            # Return the query result
         return result
     async def addflooder(self, id, duration):
         # Prepare the query for adding a flooder record
@@ -106,8 +108,8 @@ class sqlmanager:
         await self.query(query)
         return
     async def getwarnings(self, id):
-        query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + ";"
+        query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " LIMIT 2;"
         result = await self.query(query)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         count = await self.query(query)
-        return
+        return count, result
