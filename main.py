@@ -16,6 +16,11 @@ bot = discord.Bot()
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 
+def isemptyreason(reason):
+    if not reason:
+        reason = "No reason provided."
+    return reason
+
 def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False):
     finalreason = "Responsible user: " + author
     if addedrolename:
@@ -155,15 +160,10 @@ async def flooder(context, target: discord.Option(
             await pm.throwerror(context, "Failure inserting a record into the database. Flooder has not been issued.")
             return
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
-        if not reason:
-            userreason = "No reason provided."
-        else:
-            userreason = reason[:511]
-        
-        await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + userreason + ".")
-        reason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
+        modreason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
         # Add flooder role
-        await target.add_roles(flooderrole, reason = reason)
+        await target.add_roles(flooderrole, reason = modreason)
+        await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
         await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
         return
 
@@ -229,9 +229,9 @@ async def timeout(context, target: discord.Option(
             return
         try:
             # Issue timeout
-            await target.send(content = "You have been timed out by " + context.author.name + " for " + reason[:511] + ".")
-            reason = sanitizereason(context.author.name, reason = reason, duration = duration)
-            await target.timeout(time, reason = reason)
+            modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
+            await target.timeout(time, reason = modreason)
+            await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.")
