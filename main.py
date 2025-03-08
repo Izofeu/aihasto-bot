@@ -1,5 +1,6 @@
 import discord
 from discord.ext import tasks
+import re
 import configparse
 import datetime
 import permmanager
@@ -7,7 +8,6 @@ import sqlmanager
 import logmanager
 
 # Load up config
-greatmita = "Praying for you 🕯️ O Great Mita 💝"
 intents = discord.Intents.default()
 intents.guild_messages = True
 intents.dm_messages = False
@@ -29,11 +29,16 @@ cfg.load()
 # Load bot token
 token = cfg.loadtoken()
 
+link_regex = re.compile(r'https?://\S+')
+discord_regex = re.compile(r'discord\.gg/\S+')
+yt_regex = re.compile(r'(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)')
+bilibili_regex = re.compile(r'(?:https?://)?(?:www\.)?bilibili\.com/(?:video/)?([a-zA-Z0-9]+)')
 
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot)
+automessagecuration = cfg.get("automessagecuration")
 
 def isemptyreason(reason):
     if not reason:
@@ -87,8 +92,14 @@ def isvalidtime(time):
 
 @bot.event
 async def on_message_edit(before, after):
+    global automessagecuration
+    if not automessagecuration:
+        return
     if after.channel.id == cfg.get("greatmitaid"):
-        await after.delete(reason = "Edited a message in miside-great-mita.")
+        try:
+            await after.delete(reason = "Edited a message in miside-great-mita.")
+        except:
+            pass
         time = isvalidtime("1d")
         untiltimestamp = int(time.timestamp())
         permlevel = pm.getpermissionlevel(after.author)
@@ -97,6 +108,24 @@ async def on_message_edit(before, after):
             await after.author.timeout(time, reason = reason)
             await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = "1d", reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
+    elif after.channel.id == cfg.get("gifpartyid"):
+        try:
+            await after.delete(reason = "Edited a message in gif-party.")
+        except:
+            pass
+    return
+    
+@bot.event
+async def on_message(message):
+    global automessagecuration
+    if not automessagecuration:
+        return
+    if message.channel.id == cfg.get("greatmitaid"):
+        if message.content != "Praying for you 🕯️ O Great Mita 💝":
+            await message.delete()
+    elif message.channel.id == cfg.get("gifpartyid"):
+        # Continue writing code here
+        pass
     return
 
 @bot.event
@@ -174,6 +203,25 @@ async def showwarnings(context, member: discord.Member):
         await context.respond(message, ephemeral = True)
     return
     
+@bot.slash_command(description = "Toggles auto message curation of gif-party and miside-great-mita.")
+async def autopunishtoggle(context):
+    # Command permission level
+    commandpermissionlevel = 4
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    global automessagecuration
+    if automessagecuration == 0:
+        automessagecuration = 1
+        cfg.set("automessagecuration", 1)
+        await context.respond("Enabled auto message curation of gif-party and miside-great-mita.")
+    else:
+        automessagecuration = 0
+        cfg.set("automessagecuration", 0)
+        await context.respond("Disabled auto message curation of gif-party and miside-great-mita.")
+    return
+
 @bot.slash_command(description = "Removes all warnings from a user.")
 async def clearwarns(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
