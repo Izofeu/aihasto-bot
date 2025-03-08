@@ -216,7 +216,7 @@ async def showwarnings(context, member: discord.Member):
 @bot.slash_command(description = "Toggles auto message curation of gif-party and miside-great-mita.")
 async def autopunishtoggle(context):
     # Command permission level
-    commandpermissionlevel = 4
+    commandpermissionlevel = 3
     # Permission check
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
     if not canrun:
