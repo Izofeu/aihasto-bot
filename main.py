@@ -202,7 +202,8 @@ async def warn(context, target: discord.Option(
             message += " This is their first warning."
         await sqlm.addwarning(target.id, expirydate, isemptyreason(reason))
         if warncount > 0:
-            await context.respond(message, view = showwarnsbutton(), ephemeral = True)
+            # Delete the message after 1 minute to prevent a memory leak with too many buttons
+            await context.respond(message, view = showwarnsbutton(), ephemeral = True, delete_after = 120)
         else:
             await context.respond(message, ephemeral = True)
         await logm.sendlog(logm.warns, context, mode = logm.addwarn, target = target, reason = isemptyreason(reason))
