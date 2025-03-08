@@ -8,6 +8,7 @@ class sqlmanager:
         self.dbuser = self.cfg.get("dbuser")
         self.dbaddress = self.cfg.get("dbaddress")
         self.dbname = self.cfg.get("dbname")
+        self.dbport = self.cfg.get("dbport")
         self.dbpassword = ""
         # Unused variable
         self.connected = False
@@ -28,7 +29,7 @@ class sqlmanager:
             self.connected = False
         else:
             try:
-                self.connection = await sqlm.connect(host = self.dbaddress, user = self.dbuser, password = self.dbpassword, db = self.dbname, autocommit=True)
+                self.connection = await sqlm.connect(host = self.dbaddress, user = self.dbuser, password = self.dbpassword, port = self.dbport, db = self.dbname, autocommit=True)
                 self.connected = True
             except:
                 print("Couldn't connect to database.")

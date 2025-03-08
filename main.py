@@ -72,6 +72,7 @@ def isvalidtime(time):
 @bot.event
 async def on_ready():
     print("Logged in to Discord.")
+    print("successfully finished startup")
     # Start periodic task for checking expired flooders
     logm.ready()
     checkflooders.start()
