@@ -44,8 +44,9 @@ class sqlmanager:
                 "CREATE TABLE IF NOT EXISTS `flooders`" +
                 "(" +
                 "`id` INT NOT NULL AUTO_INCREMENT," +
-                "`account_id` varchar(40) NOT NULL UNIQUE," +
+                "`account_id` varchar(40) NOT NULL," +
                 "`expiration_date` DATETIME NOT NULL," +
+                "`removed` BOOL NOT NULL DEFAULT 0," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
@@ -74,10 +75,9 @@ class sqlmanager:
             await self.condisconnect(1)
             # Return the query result
         return result
+        
     async def addflooder(self, id, duration):
         # Prepare the query for adding a flooder record
-        query = "DELETE FROM `flooders` WHERE account_id = " + str(id) + ";"
-        await self.query(query)
         query = (
         "INSERT INTO `flooders` (`account_id`, `expiration_date`) VALUES (" +
         str(id) + ", '" + str(duration) + "'"
@@ -85,35 +85,47 @@ class sqlmanager:
         )
         await self.query(query)
         return
+        
     async def getexpiredflooders(self, currentdate):
         # Get all expired flooders
-        query = "SELECT account_id FROM flooders WHERE expiration_date < '" + currentdate + "';"
+        query = "SELECT account_id FROM flooders WHERE removed = 0 AND expiration_date < '" + currentdate + "';"
         result = await self.query(query)
         return result
-    async def removeflooder(self, id):
-        # Remove a flooder record from the database
-        query = "DELETE FROM `flooders` WHERE account_id = " + str(id) + ";"
+        
+    async def markflooderasremoved(self, id):
+        query = "UPDATE `flooders` SET removed = 1 WHERE account_id = " + str(id) + ";"
         await self.query(query)
         return
+        
+    async def removeoldflooders(self):
+        query = "DELETE FROM `flooders` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
+        print("got here")
+        await self.query(query)
+        return
+        
     async def addwarning(self, id, expirydate, reason):
         query = ("INSERT INTO `warns` (`account_id`, `expiration_date`, `reason`) VALUES (" +
         str(id) + ", '" + str(expirydate) + "', %s);")
         await self.query(query, [reason])
         return
+        
     async def removewarnings(self, id):
         query = "DELETE FROM `warns` WHERE account_id = " + str(id) + ";"
         await self.query(query)
         return
+        
     async def deleteexpiredwarns(self, date):
         query = "DELETE FROM `warns` WHERE expiration_date < '" + str(date) + "';"
         await self.query(query)
         return
+        
     async def getwarnings(self, id):
         query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 2;"
         result = await self.query(query)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         count = await self.query(query)
         return count, result
+        
     async def getwarncount(self, id):
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         result = await self.query(query)

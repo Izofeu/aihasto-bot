@@ -23,6 +23,7 @@ intents.typing = False
 intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
+intents.members = True
 bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
@@ -38,7 +39,6 @@ bilibili_regex = re.compile(r'(?:https?://)?(?:www\.)?bilibili\.com/(?:video/)?(
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot)
-automessagecuration = cfg.get("automessagecuration")
 
 def isemptyreason(reason):
     if not reason:
@@ -92,8 +92,7 @@ def isvalidtime(time):
 
 @bot.event
 async def on_message_edit(before, after):
-    global automessagecuration
-    if not automessagecuration:
+    if not cfg.get("automessagecuration"):
         return
     if after.channel.id == cfg.get("greatmitaid"):
         try:
@@ -106,7 +105,7 @@ async def on_message_edit(before, after):
         if permlevel == 0:
             reason = "Edited a message in miside-great-mita."
             await after.author.timeout(time, reason = reason)
-            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = "1d", reason = reason)
+            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = untiltimestamp, reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
     elif after.channel.id == cfg.get("gifpartyid"):
         try:
@@ -117,15 +116,16 @@ async def on_message_edit(before, after):
     
 @bot.event
 async def on_message(message):
-    global automessagecuration
-    if not automessagecuration:
+    if not cfg.get("automessagecuration"):
+        return
+    if message.author == bot.user:
         return
     if message.channel.id == cfg.get("greatmitaid"):
         if message.content != "Praying for you 🕯️ O Great Mita 💝":
             await message.delete()
     elif message.channel.id == cfg.get("gifpartyid"):
-        # Continue writing code here
-        pass
+        if " " in message.content:
+            await message.delete()
     return
 
 @bot.event
@@ -142,6 +142,7 @@ async def checkflooders():
     # Get expired flooders as a tuple of user ids whose flooders have expired
     expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     if not expiredflooders:
+        await sqlm.removeoldflooders()
         return
     # Obtain guild object from guild id from config
     guild = bot.get_guild(cfg.get("guild"))
@@ -153,11 +154,10 @@ async def checkflooders():
         id = int(flooderid[0])
         # Get member object
         flooder = guild.get_member(id)
-        # Remove flooder record from database
-        await sqlm.removeflooder(id)
         try:
             # Remove role
             await flooder.remove_roles(flooderrole, reason = "Expired flooder role.")
+            await sqlm.markflooderasremoved(flooder.id)
         except:
             # If role removal goes wrong, for example the user got the role removed manually, then ignore the error
             print("Couldn't remove flooder role from " + str(flooder) + ".")
@@ -211,13 +211,10 @@ async def autopunishtoggle(context):
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
     if not canrun:
         return
-    global automessagecuration
-    if automessagecuration == 0:
-        automessagecuration = 1
+    if cfg.get("automessagecuration") == 0:
         cfg.set("automessagecuration", 1)
         await context.respond("Enabled auto message curation of gif-party and miside-great-mita.")
     else:
-        automessagecuration = 0
         cfg.set("automessagecuration", 0)
         await context.respond("Disabled auto message curation of gif-party and miside-great-mita.")
     return
@@ -309,8 +306,11 @@ async def unflooder(context, target: discord.Option(
         if not canrun:
             return
         try:
-            await sqlm.removeflooder(target.id)
+            await sqlm.markflooderasremoved(target.id)
             flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+            if not pm.hasrole(target, flooderrole):
+                await pm.throwerror(context, "User doesn't have a flooder role!")
+                return
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
             await target.remove_roles(flooderrole, reason = modreason)
             await context.respond("Removed flooder from " + target.name + ".")
@@ -340,6 +340,7 @@ async def flooder(context, target: discord.Option(
         if not canrun:
             return
         # Check if time inputted by user is valid
+        
         time = isvalidtime(duration)
         # Calculate the unix timestamp of end date of punishment to display it nicely to the user
         untiltimestamp = int(time.timestamp())
@@ -348,6 +349,9 @@ async def flooder(context, target: discord.Option(
             return
         
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
+        if pm.hasrole(target, flooderrole):
+            await pm.throwerror(context, "User has flooder role already!")
+            return
         modreason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
         # Add flooder role
         try:
@@ -357,13 +361,15 @@ async def flooder(context, target: discord.Option(
             except:
                 pass
             await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
-            await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
             await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
             return
         try:
             # Convert the time to SQL datetime format
             time = time.strftime("%Y-%m-%d %H:%M:%S")
+            # If user has any pending flooders in the database for whatever reason, mark them as removed
+            await sqlm.markflooderasremoved(target.id)
             # Add flooder record to database
             await sqlm.addflooder(target.id, time)
         except:
@@ -439,7 +445,7 @@ async def timeout(context, target: discord.Option(
             except:
                 pass
             await context.respond("User " + target.name + " has been timed out for " + duration + ".")
-            await logm.sendlog(logm.timeouts, context, target = target, duration = duration, reason = isemptyreason(reason))
+            await logm.sendlog(logm.timeouts, context, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.")
         return
@@ -456,7 +462,7 @@ async def puppet(context, target: discord.Option(
         # Command permission level
         commandpermissionlevel = 2
         # Permission check
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
         # If user has role, then remove it
@@ -464,12 +470,12 @@ async def puppet(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("puppetrole")):
             await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
             await context.respond("Removed Puppet role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, rolename = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = puppetrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
             await context.respond("Added Puppet role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, rolename = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = puppetrole)
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
@@ -491,12 +497,12 @@ async def hand(context, target: discord.Option(
         if pm.hasrole(target, cfg.get("handrole")):
             await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
             await context.respond("Removed Hand role from " + target.name + ".")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target.name, rolename = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = handrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
             await context.respond("Added Hand role to " + target.name + ".")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target.name, rolename = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = handrole)
         return
         
 

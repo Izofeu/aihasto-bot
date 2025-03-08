@@ -33,9 +33,9 @@ class logmanager:
         log = "No appropriate log category has been found."
         if category == self.timeouts:
             if mode == self.selfissuedwarn:
-                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.user.name + " for " + duration + " for " + reason + "."
+                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
             else:
-                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
+                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
                 log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
@@ -43,7 +43,7 @@ class logmanager:
                 log = "A role " + role.name + " has been removed from <@" + str(target.id) + "> by " + context.author.name + "."
         elif category == self.flooders:
             if mode == self.addrole:
-                log = "A Flooder role has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
+                log = "A Flooder role has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
             else:
                 log = "A Flooder role has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
         elif category == self.warns:
