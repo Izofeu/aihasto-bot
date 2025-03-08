@@ -5,7 +5,7 @@ class permmanager:
         # Prepare cfg
         self.cfg = cfg
         
-    async def canrun(self, context, member, target=False, commandpermissionlevel=-1):
+    async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False):
         # This method checks if a member has permission to run a command.
         # The permissions involve two checks:
         # If a command is a general command that doesn't affect a specific user then
@@ -20,7 +20,10 @@ class permmanager:
             # Check permission level of the user who ran the command
             inituser_permissionlevel = self.getpermissionlevel(member)
             if inituser_permissionlevel < commandpermissionlevel:
-                await self.throwerror(context, "You do not have enough permissions to run this command.")
+                if interaction and not target:
+                    await self.throwerrorinteraction(context, "You do not have enough permissions to run this command.")
+                else:
+                    await self.throwerror(context, "You do not have enough permissions to run this command.")
                 return False
             # If a command affects another user, perform a hierarchy check
             if target:
@@ -37,8 +40,8 @@ class permmanager:
         # Master is the bot coder who has the permission for debugging purposes.
         # Manage servers permission is considered a top level permission
         # that allows complete management over the bot.
-        if member.guild_permissions.manage_guild or member.id == self.cfg.get("master"):
-            return 4
+        #if member.guild_permissions.manage_guild or member.id == self.cfg.get("master"):
+        #    return 4
         if self.hasrole(member, self.cfg.get("armrole")):
             return 3
         if self.hasrole(member, self.cfg.get("handrole")):
@@ -57,4 +60,7 @@ class permmanager:
     
     async def throwerror(self, context, reason):
         await context.respond(reason, ephemeral = True)
+        return
+    async def throwerrorinteraction(self, context, reason):
+        await context.response.send_message(reason, ephemeral = True)
         return

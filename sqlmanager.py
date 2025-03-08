@@ -108,8 +108,12 @@ class sqlmanager:
         await self.query(query)
         return
     async def getwarnings(self, id):
-        query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " LIMIT 2;"
+        query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 2;"
         result = await self.query(query)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         count = await self.query(query)
         return count, result
+    async def getwarncount(self, id):
+        query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
+        result = await self.query(query)
+        return int(result[0][0])

@@ -108,6 +108,15 @@ async def checkwarnings():
     
 @bot.user_command(name = "Show warnings")
 async def showwarnings(context, member: discord.Member):
+    # Do not run the permission check if we only want the message for the button response
+    # as we've already ran a permission check there
+    if context != 27:
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
     warningscount, warnings = await sqlm.getwarnings(member.id)
     warningscount = warningscount[0][0]
     if warningscount == 0:
@@ -116,13 +125,22 @@ async def showwarnings(context, member: discord.Member):
         message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last two warnings:"
         #print(warnings)
         #print(len(warnings))
-        format = "%Y-%m-%d %H:%M:%S"
+        format = "%Y-%m-%d %H:%M:%S %z"
         for warns in warnings:
             date = warns[1] - datetime.timedelta(days = 3)
+            # datetime object assumes timezone of the machine
+            # this part of code recreates the object with utc timezone
+            date = str(date)
+            date += " +0000"
+            date = datetime.datetime.strptime(date, format)
             time = int(date.timestamp())
             message += "\n<t:" + str(time) + ":R> - " + str(warns[2])
-            #print(warns[1])
-    await context.respond(message, ephemeral = True)
+    # We cannot add params to a command function
+    # so we reuse one of arguments as a workaround
+    if context == 27:
+        return message
+    else:
+        await context.respond(message, ephemeral = True)
     return
     
 @bot.slash_command(description = "Removes all warnings from a user.")
@@ -166,8 +184,27 @@ async def warn(context, target: discord.Option(
         if not canrun:
             return
         expirydate = isvalidtime("3d").strftime("%Y-%m-%d %H:%M:%S")
+        warncount = await sqlm.getwarncount(target.id)
+        message = "User " + target.name + " has been issued a warning for " + isemptyreason(reason) + "."
+        if warncount > 0:
+            message += " They have " + str(warncount) + " other warning(s) on account."
+            class showwarnsbutton(discord.ui.View):
+                @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)
+                async def button_callback(self, button, interaction):
+                    # Command permission level
+                    commandpermissionlevel = 1
+                    # Permission check
+                    canrun = await pm.canrun(context = interaction, member = interaction.user, commandpermissionlevel = commandpermissionlevel, interaction = True)
+                    if not canrun:
+                        return
+                    await interaction.response.send_message(await showwarnings(27, target), ephemeral = True)
+        else:
+            message += " This is their first warning."
         await sqlm.addwarning(target.id, expirydate, isemptyreason(reason))
-        await context.respond("User " + target.name + " has been issued a warning for " + isemptyreason(reason) + ".")
+        if warncount > 0:
+            await context.respond(message, view = showwarnsbutton(), ephemeral = True)
+        else:
+            await context.respond(message, ephemeral = True)
         await logm.sendlog(logm.warns, context, mode = logm.addwarn, target = target, reason = isemptyreason(reason))
         try:
             await target.send("You have been issued a warning by " + context.author.name + " for " + isemptyreason(reason) + ".")

@@ -31,22 +31,22 @@ class logmanager:
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False):
         log = "No appropriate log category has been found."
         if category == self.timeouts:
-            log = "A timeout has been issued to " + target.name + " by " + context.author.name + " for " + duration + " for " + reason + "."
+            log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
-                log = "A role " + role.name + " has been assigned to " + target.name + " by " + context.author.name + "."
+                log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
             else:
-                log = "A role " + role.name + " has been removed from " + target.name + " by " + context.author.name + "."
+                log = "A role " + role.name + " has been removed from <@" + str(target.id) + "> by " + context.author.name + "."
         elif category == self.flooders:
             if mode == self.addrole:
-                log = "A Flooder role has been issued to " + target.name + " by " + context.author.name + " for " + duration + " for " + reason + "."
+                log = "A Flooder role has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
             else:
-                log = "A Flooder role has been prematurely removed from " + target.name + " by " + context.author.name + " for " + reason + "."
+                log = "A Flooder role has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
         elif category == self.warns:
             if mode == self.addwarn:
-                log = "A warning has been issued to " + target.name + " by " + context.author.name + " for " + reason + "."
+                log = "A warning has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
             else:
-                log = context.author.name + " has cleared all warnings for " + target.name + " for " + reason + "."
+                log = context.author.name + " has cleared all warnings for <@" + str(target.id) + "> for " + reason + "."
         await self.uploadlog(log, context)
         return
     def ready(self):
