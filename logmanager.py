@@ -10,6 +10,7 @@ class logmanager:
         self.roles = 1
         self.flooders = 2
         self.warns = 3
+        self.selfissuedwarn = 4
         
         self.addrole = 0
         self.removerole = 1
@@ -31,7 +32,10 @@ class logmanager:
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False):
         log = "No appropriate log category has been found."
         if category == self.timeouts:
-            log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
+            if mode == self.selfissuedwarn:
+                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.user.name + " for " + duration + " for " + reason + "."
+            else:
+                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + duration + " for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
                 log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
@@ -53,5 +57,5 @@ class logmanager:
         guild = self.bot.get_guild(self.cfg.get("guild"))
         self.logchannel = guild.get_channel(self.logchannelid)
         if self.logchannel == None:
-            raise NoLogChannelException
+            raise Exception("No log channel defined.")
         return

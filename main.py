@@ -7,7 +7,23 @@ import sqlmanager
 import logmanager
 
 # Load up config
-bot = discord.Bot()
+greatmita = "Praying for you 🕯️ O Great Mita 💝"
+intents = discord.Intents.default()
+intents.guild_messages = True
+intents.dm_messages = False
+intents.invites = False
+intents.integrations = False
+intents.webhooks = False
+intents.emojis = False
+intents.emojis_and_stickers = False
+intents.auto_moderation_configuration = False
+intents.auto_moderation_execution = False
+intents.message_content = True
+intents.typing = False
+intents.presences = False
+intents.polls = False
+intents.dm_reactions = False
+bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
@@ -68,7 +84,21 @@ def isvalidtime(time):
     except:
         return False
     return False
-    
+
+@bot.event
+async def on_message_edit(before, after):
+    if after.channel.id == cfg.get("greatmitaid"):
+        await after.delete(reason = "Edited a message in miside-great-mita.")
+        time = isvalidtime("1d")
+        untiltimestamp = int(time.timestamp())
+        permlevel = pm.getpermissionlevel(after.author)
+        if permlevel == 0:
+            reason = "Edited a message in miside-great-mita."
+            await after.author.timeout(time, reason = reason)
+            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = "1d", reason = reason)
+            await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
+    return
+
 @bot.event
 async def on_ready():
     print("Logged in to Discord.")
