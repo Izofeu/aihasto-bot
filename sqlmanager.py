@@ -99,7 +99,6 @@ class sqlmanager:
         
     async def removeoldflooders(self):
         query = "DELETE FROM `flooders` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
-        print("got here")
         await self.query(query)
         return
         

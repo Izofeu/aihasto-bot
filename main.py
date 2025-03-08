@@ -23,7 +23,7 @@ intents.typing = False
 intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
-intents.members = True
+intents.members = False
 bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
@@ -118,13 +118,19 @@ async def on_message_edit(before, after):
 async def on_message(message):
     if not cfg.get("automessagecuration"):
         return
-    if message.author == bot.user:
+    if message.author.bot:
         return
     if message.channel.id == cfg.get("greatmitaid"):
         if message.content != "Praying for you 🕯️ O Great Mita 💝":
             await message.delete()
     elif message.channel.id == cfg.get("gifpartyid"):
+        #print(message.content)
+        #print("\n\n\n")
+        #print(dir(message.content))
+        #print(message.embeds[0].type)
         if " " in message.content:
+            await message.delete()
+        elif not link_regex.search(message.content) or (discord_regex.search(message.content) or yt_regex.search(message.content) or bilibili_regex.search(message.content)):
             await message.delete()
     return
 
@@ -153,7 +159,11 @@ async def checkflooders():
         # flooder is is a tuple, first result is a pure id
         id = int(flooderid[0])
         # Get member object
-        flooder = guild.get_member(id)
+        try:
+            flooder = await guild.fetch_member(id)
+        except:
+            await sqlm.markflooderasremoved(flooder.id)
+            continue
         try:
             # Remove role
             await flooder.remove_roles(flooderrole, reason = "Expired flooder role.")
@@ -342,11 +352,11 @@ async def flooder(context, target: discord.Option(
         # Check if time inputted by user is valid
         
         time = isvalidtime(duration)
-        # Calculate the unix timestamp of end date of punishment to display it nicely to the user
-        untiltimestamp = int(time.timestamp())
         if not time:
             await pm.throwerror(context, "Invalid flooder duration.")
             return
+        # Calculate the unix timestamp of end date of punishment to display it nicely to the user
+        untiltimestamp = int(time.timestamp())
         
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
         if pm.hasrole(target, flooderrole):
@@ -432,10 +442,10 @@ async def timeout(context, target: discord.Option(
         if not canrun:
             return
         time = isvalidtime(duration)
-        untiltimestamp = int(time.timestamp())
         if not time:
             await context.respond("Invalid timeout duration.", ephemeral = True)
             return
+        untiltimestamp = int(time.timestamp())
         try:
             # Issue timeout
             modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
