@@ -128,16 +128,15 @@ async def on_message(message):
     reasongif = "Incorrect message in gif-party."
     try:
         if message.channel.id == cfg.get("greatmitaid"):
-            if message.content != "Praying for you 🕯️ O Great Mita 💝":
+            if message.content != "Praying for you 🕯️ O Great Mita 💝" or str(message.type) == "MessageType.reply":
                 await message.delete(reason = reasonmita)
         elif message.channel.id == cfg.get("gifpartyid"):
-            print(message.content)
             if " " in message.content or "\n" in message.content:
                 await message.delete(reason = reasongif)
                 return
             elif "gif" in message.content:
                 if (message.content.startswith("https://tenor.com/") or message.content.startswith("https://cdn.discordapp.com/attachments/")
-                or message.content.startswith("https://media.discordapp.net/attachments/")):
+                or message.content.startswith("https://media.discordapp.net/attachments/") or message.content.startswith("https://giphy.com/gifs/")):
                     try:
                         embed = message.embeds[0]
                     except:
