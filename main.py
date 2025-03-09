@@ -1,11 +1,14 @@
 import discord
 from discord.ext import tasks
+from discord import guild_only
 import re
 import configparse
 import datetime
 import permmanager
 import sqlmanager
 import logmanager
+
+messagecache = []
 
 # Load up config
 intents = discord.Intents.default()
@@ -29,11 +32,6 @@ cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
 token = cfg.loadtoken()
-
-link_regex = re.compile(r'https?://\S+')
-discord_regex = re.compile(r'discord\.gg/\S+')
-yt_regex = re.compile(r'(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)')
-bilibili_regex = re.compile(r'(?:https?://)?(?:www\.)?bilibili\.com/(?:video/)?([a-zA-Z0-9]+)')
 
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg)
@@ -108,6 +106,12 @@ async def on_message_edit(before, after):
             await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = untiltimestamp, reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
     elif after.channel.id == cfg.get("gifpartyid"):
+        if before.content == after.content:
+            try:
+                messagecache.remove(str(after.id))
+            except:
+                pass
+            return
         try:
             await after.delete(reason = "Edited a message in gif-party.")
         except:
@@ -120,18 +124,35 @@ async def on_message(message):
         return
     if message.author.bot:
         return
-    if message.channel.id == cfg.get("greatmitaid"):
-        if message.content != "Praying for you 🕯️ O Great Mita 💝":
-            await message.delete()
-    elif message.channel.id == cfg.get("gifpartyid"):
-        #print(message.content)
-        #print("\n\n\n")
-        #print(dir(message.content))
-        #print(message.embeds[0].type)
-        if " " in message.content:
-            await message.delete()
-        elif not link_regex.search(message.content) or (discord_regex.search(message.content) or yt_regex.search(message.content) or bilibili_regex.search(message.content)):
-            await message.delete()
+    reasonmita = "Incorrect message in miside-great-mita."
+    reasongif = "Incorrect message in gif-party."
+    try:
+        if message.channel.id == cfg.get("greatmitaid"):
+            if message.content != "Praying for you 🕯️ O Great Mita 💝":
+                await message.delete(reason = reasonmita)
+        elif message.channel.id == cfg.get("gifpartyid"):
+            print(message.content)
+            if " " in message.content or "\n" in message.content:
+                await message.delete(reason = reasongif)
+                return
+            elif "gif" in message.content:
+                if (message.content.startswith("https://tenor.com/") or message.content.startswith("https://cdn.discordapp.com/attachments/")
+                or message.content.startswith("https://media.discordapp.net/attachments/")):
+                    try:
+                        embed = message.embeds[0]
+                    except:
+                        messagecache.append(str(message.id))
+                        sec5 = datetime.datetime.now() + datetime.timedelta(seconds = 5)
+                        await discord.utils.sleep_until(sec5)
+                        try:
+                            messagecache.remove(str(message.id))
+                            await message.delete(reason = reasongif)
+                        except:
+                            pass
+                    return
+            await message.delete(reason = reasongif)
+    except:
+        pass
     return
 
 @bot.event
@@ -177,6 +198,7 @@ async def checkwarnings():
     return
     
 @bot.user_command(name = "Show warnings")
+@guild_only()
 async def showwarnings(context, member: discord.Member):
     # Do not run the permission check if we only want the message for the button response
     # as we've already ran a permission check there
@@ -214,6 +236,7 @@ async def showwarnings(context, member: discord.Member):
     return
     
 @bot.slash_command(description = "Toggles auto message curation of gif-party and miside-great-mita.")
+@guild_only()
 async def autopunishtoggle(context):
     # Command permission level
     commandpermissionlevel = 3
@@ -230,6 +253,7 @@ async def autopunishtoggle(context):
     return
 
 @bot.slash_command(description = "Removes all warnings from a user.")
+@guild_only()
 async def clearwarns(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -254,6 +278,7 @@ async def clearwarns(context, target: discord.Option(
         return
     
 @bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
+@guild_only()
 async def warn(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -300,6 +325,7 @@ async def warn(context, target: discord.Option(
         return
     
 @bot.slash_command(description = "Remove a flooder from a user.")
+@guild_only()
 async def unflooder(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -316,7 +342,7 @@ async def unflooder(context, target: discord.Option(
         if not canrun:
             return
         try:
-            await sqlm.markflooderasremoved(target.id)
+            await sqlm.removeflooder(target.id)
             flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
             if not pm.hasrole(target, flooderrole):
                 await pm.throwerror(context, "User doesn't have a flooder role!")
@@ -330,6 +356,7 @@ async def unflooder(context, target: discord.Option(
         return
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
+@guild_only()
 async def flooder(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -388,6 +415,7 @@ async def flooder(context, target: discord.Option(
 
 
 @bot.slash_command(description = "Edit slow mode for a general channel.")
+@guild_only()
 async def slowmode(context, target: discord.Option(
     discord.SlashCommandOptionType.channel,
     required = True,
@@ -422,6 +450,7 @@ async def slowmode(context, target: discord.Option(
         return
     
 @bot.slash_command(description = "Time-out a user for any duration.")
+@guild_only()
 async def timeout(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -462,6 +491,7 @@ async def timeout(context, target: discord.Option(
         
 
 @bot.slash_command(description = "Toggles Puppet role for a user.")
+@guild_only()
 async def puppet(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -489,6 +519,7 @@ async def puppet(context, target: discord.Option(
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
+@guild_only()
 async def hand(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
@@ -518,6 +549,7 @@ async def hand(context, target: discord.Option(
 
         
 @bot.slash_command(description = "Mark which roles are moderation roles.")
+@guild_only()
 async def setmodroles(context, puppet: discord.Option(
     discord.SlashCommandOptionType.role,
     required = True,
@@ -553,6 +585,7 @@ async def setmodroles(context, puppet: discord.Option(
         return
         
 @bot.slash_command(description = "Changes the channel of log messages.")
+@guild_only()
 async def setlogchannel(context, channel: discord.Option(
     discord.SlashCommandOptionType.channel,
     required = True,
@@ -574,6 +607,7 @@ async def setlogchannel(context, channel: discord.Option(
         return
             
 @bot.slash_command(description = "Get user's permission level.")
+@guild_only()
 async def getperms(context):
     # Debug command to return permission level
     permlevel = pm.getpermissionlevel(context.author)

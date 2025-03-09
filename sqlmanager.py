@@ -96,6 +96,11 @@ class sqlmanager:
         query = "UPDATE `flooders` SET removed = 1 WHERE account_id = " + str(id) + ";"
         await self.query(query)
         return
+    
+    async def removeflooder(self, id):
+        query = "DELETE FROM `flooders` WHERE account_id = " + str(id) + " AND removed = 0;"
+        await self.query(query)
+        return
         
     async def removeoldflooders(self):
         query = "DELETE FROM `flooders` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
