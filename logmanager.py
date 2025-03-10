@@ -63,7 +63,10 @@ class logmanager:
             log = ""
             if mode == self.noreason:
                 log = "Caution! "
-            log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context.author.name + " for " + reason + "."
+            try:
+                log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context.author.name + " for " + reason + "."
+            except:
+                return
         elif category == self.unbanreasons:
             log = "An unban reason has been provided by " + context.author.name + " for unbanning of <@" + str(target.id) + "> ( " + str(target.id) + " ): " + reason + "."
         await self.uploadlog(log, context)
