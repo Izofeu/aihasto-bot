@@ -11,6 +11,7 @@ class logmanager:
         self.flooders = 2
         self.warns = 3
         self.selfissuedwarn = 4
+        self.slowmodes = 5
         
         self.addrole = 0
         self.removerole = 1
@@ -29,7 +30,7 @@ class logmanager:
         except:
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
         return
-    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False):
+    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
         log = "No appropriate log category has been found."
         if category == self.timeouts:
             if mode == self.selfissuedwarn:
@@ -51,6 +52,8 @@ class logmanager:
                 log = "A warning has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
             else:
                 log = context.author.name + " has cleared all warnings for <@" + str(target.id) + "> for " + reason + "."
+        elif category == self.slowmodes:
+            log = "Slowmode for channel <#" + str(channelid) + "> has been set to " + str(duration) + " seconds by " + context.author.name + "."
         await self.uploadlog(log, context)
         return
     def ready(self):

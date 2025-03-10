@@ -54,7 +54,7 @@ class permmanager:
         # This method checks if a member has a role.
         memberroles = member.roles
         for roles in memberroles:
-            if role == roles.id:
+            if int(role) == roles.id:
                 return True
         return False
     

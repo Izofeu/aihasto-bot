@@ -27,6 +27,11 @@ intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
 intents.members = False
+#intents.members = True
+
+#nocachemembers = discord.MemberCacheFlags.none()
+
+#bot = discord.Bot(intents = intents), member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
 bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
@@ -196,6 +201,22 @@ async def checkwarnings():
     await sqlm.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
+@bot.user_command(name = "Show flooders")
+@guild_only()
+async def showflooders(context, member: discord.Member):
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    floodercount = await sqlm.getfloodercount(member.id)
+    if floodercount > 0:
+        message = "<@" + str(member.id) + "> has received " + str(floodercount) + " flooders in last 30 days."
+    else:
+        message = "<@" + str(member.id) + "> has not received any flooders in last 30 days."
+    await context.respond(message, ephemeral = True)
+    return
+    
 @bot.user_command(name = "Show warnings")
 @guild_only()
 async def showwarnings(context, member: discord.Member):
@@ -213,7 +234,7 @@ async def showwarnings(context, member: discord.Member):
     if warningscount == 0:
         message = member.name + " has not received any warnings."
     else:
-        message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last two warnings:"
+        message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last three warnings:"
         #print(warnings)
         #print(len(warnings))
         format = "%Y-%m-%d %H:%M:%S %z"
@@ -396,7 +417,7 @@ async def flooder(context, target: discord.Option(
                 await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
             except:
                 pass
-            await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).")
+            await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).", ephemeral = True)
             await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
             await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
@@ -437,8 +458,8 @@ async def slowmode(context, target: discord.Option(
         if "general" not in str(target.name):
             await pm.throwerror(context, "You can only edit slow mode for general channels.")
             return
-        if delay < 0 or delay > 21600:
-            await pm.throwerror(context, "Invalid slow mode duration. Allowed values: 0 - 21600 seconds.")
+        if delay < 5 or delay > 21600:
+            await pm.throwerror(context, "Invalid slow mode duration. Allowed values: 5 - 21600 seconds.")
             return
         try:
             await target.edit(reason = sanitizereason(context.author.name), slowmode_delay = delay)
@@ -446,6 +467,7 @@ async def slowmode(context, target: discord.Option(
             await pm.throwerror(context, "Unable to edit the channel - I don't have permission.")
             return
         await context.respond("Slow mode for channel " + target.name + " set to " + str(delay) + " seconds.")
+        await logm.sendlog(logm.slowmodes, context = context, duration = delay, channelid = target.id)
         return
     
 @bot.slash_command(description = "Time-out a user for any duration.")
@@ -482,10 +504,10 @@ async def timeout(context, target: discord.Option(
                 await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
             except:
                 pass
-            await context.respond("User " + target.name + " has been timed out for " + duration + ".")
+            await context.respond("User " + target.name + " has been timed out for " + duration + ".", ephemeral = True)
             await logm.sendlog(logm.timeouts, context, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
-            await context.respond("Error issuing a timeout. Check bot permissions.")
+            await context.respond("Error issuing a timeout. Check bot permissions.", ephemeral = True)
         return
         
 
