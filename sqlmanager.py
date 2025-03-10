@@ -135,6 +135,11 @@ class sqlmanager:
         result = await self.query(query)
         return int(result[0][0])
         
+    async def isflooder(self, id):
+        query = "SELECT COUNT(id) FROM `flooders` WHERE account_id = " + str(id) + " AND removed = 0;"
+        result = await self.query(query)
+        return int(result[0][0])
+        
     async def getwarncount(self, id):
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         result = await self.query(query)

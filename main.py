@@ -26,12 +26,12 @@ intents.typing = False
 intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
-intents.members = False
+intents.members = True
 
 nocachemembers = discord.MemberCacheFlags.none()
 
-#bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
-bot = discord.Bot(intents = intents)
+bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
+#bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
@@ -91,6 +91,14 @@ def isvalidtime(time):
     except:
         return False
     return False
+    
+@bot.event
+async def on_member_join(member):
+    isflooder = await sqlm.isflooder(member.id)
+    if isflooder > 0:
+        flooderrole = member.guild.get_role(cfg.get("flooderrole"))
+        await member.add_roles(flooderrole, reason = "Added a Flooder role due to user rejoining the server while having an active Flooder punishment.")
+    return
 
 @bot.event
 async def on_message_edit(before, after):
@@ -186,7 +194,7 @@ async def checkflooders():
         try:
             flooder = await guild.fetch_member(id)
         except:
-            await sqlm.markflooderasremoved(flooder.id)
+            await sqlm.markflooderasremoved(id)
             continue
         try:
             # Remove role
