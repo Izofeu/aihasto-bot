@@ -27,11 +27,10 @@ intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
 intents.members = False
-#intents.members = True
 
-#nocachemembers = discord.MemberCacheFlags.none()
+nocachemembers = discord.MemberCacheFlags.none()
 
-#bot = discord.Bot(intents = intents), member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
+#bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
 bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
@@ -364,7 +363,7 @@ async def unflooder(context, target: discord.Option(
         try:
             await sqlm.removeflooder(target.id)
             flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
-            if not pm.hasrole(target, flooderrole):
+            if not pm.hasrole(target, flooderrole.id):
                 await pm.throwerror(context, "User doesn't have a flooder role!")
                 return
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
@@ -406,7 +405,7 @@ async def flooder(context, target: discord.Option(
         untiltimestamp = int(time.timestamp())
         
         flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
-        if pm.hasrole(target, flooderrole):
+        if pm.hasrole(target, flooderrole.id):
             await pm.throwerror(context, "User has flooder role already!")
             return
         modreason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
