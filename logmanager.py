@@ -12,12 +12,15 @@ class logmanager:
         self.warns = 3
         self.selfissuedwarn = 4
         self.slowmodes = 5
+        self.unbans = 6
+        self.unbanreasons = 7
         
         self.addrole = 0
         self.removerole = 1
         
         self.addwarn = 0
         self.clearwarns = 1
+        self.noreason = 2
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
@@ -28,6 +31,8 @@ class logmanager:
         try:
             await self.logchannel.send(content)
         except:
+            if not context:
+                return
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
         return
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
@@ -54,6 +59,13 @@ class logmanager:
                 log = context.author.name + " has cleared all warnings for <@" + str(target.id) + "> for " + reason + "."
         elif category == self.slowmodes:
             log = "Slowmode for channel <#" + str(channelid) + "> has been set to " + str(duration) + " seconds by " + context.author.name + "."
+        elif category == self.unbans:
+            log = ""
+            if mode == self.noreason:
+                log = "Caution! "
+            log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context.author.name + " for " + reason + "."
+        elif category == self.unbanreasons:
+            log = "An unban reason has been provided by " + context.author.name + " for unbanning of <@" + str(target.id) + "> ( " + str(target.id) + " ): " + reason + "."
         await self.uploadlog(log, context)
         return
     def ready(self):

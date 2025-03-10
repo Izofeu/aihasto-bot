@@ -1,6 +1,7 @@
 import discord
 from discord.ext import tasks
 from discord import guild_only
+from discord.ext import commands
 import re
 import configparse
 import datetime
@@ -9,6 +10,7 @@ import sqlmanager
 import logmanager
 
 messagecache = []
+recentunbans = []
 
 # Load up config
 intents = discord.Intents.default()
@@ -27,6 +29,7 @@ intents.presences = False
 intents.polls = False
 intents.dm_reactions = False
 intents.members = True
+intents.moderation = True
 
 nocachemembers = discord.MemberCacheFlags.none()
 
@@ -47,12 +50,14 @@ def isemptyreason(reason):
         reason = "No reason provided."
     return reason
 
-def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False):
+def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False, unban = False):
     finalreason = "Responsible user: " + author
     if addedrolename:
         finalreason += ", Added role: " + addedrolename
     if removedrolename:
         finalreason += ", Removed role: " + removedrolename
+    if unban:
+        finalreason += ", Action: Unban"
     if duration:
         finalreason += ", Duration: " + duration
     if reason:
@@ -92,6 +97,20 @@ def isvalidtime(time):
         return False
     return False
     
+@bot.event
+async def on_member_unban(guild, user):
+    mod = False
+    async for action in guild.audit_logs(limit = 1, action = discord.AuditLogAction.unban):
+        mod = action.user
+    if not mod:
+        return
+    try:
+        recentunbans.index(user.id)
+        return
+    except:
+        await logm.sendlog(logm.unbans, context = mod.name, target = user.id, mode = logm.noreason, reason = isemptyreason(""))
+    return
+        
 @bot.event
 async def on_member_join(member):
     isflooder = await sqlm.isflooder(member.id)
@@ -262,6 +281,70 @@ async def showwarnings(context, member: discord.Member):
         await context.respond(message, ephemeral = True)
     return
     
+@bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
+@guild_only()
+@commands.cooldown(1, 60, commands.BucketType.default)
+async def addunbanreason(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "ID of a user to add an unban reason to."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "Unban reason to add.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await logm.sendlog(logm.unbanreasons, context = context, target = target, reason = isemptyreason(reason))
+        await context.respond("Successfully added an unban reason of <@" + str(target.id) + "> (" + str(target.id) + ") to log channel.")
+        return
+        
+@addunbanreason.error
+async def cooldown_error(context):
+    pm.throwerror(context, "This command has a global cooldown of 1 minute.")
+    return
+
+@bot.slash_command(description = "Unbans a user with a reason.")
+@guild_only()
+async def unban(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "ID of a user to unban."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "Reason for the unban.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            modreason = sanitizereason(context.author.name, reason = reason, unban = True)
+            recentunbans.append(target.id)
+            await context.author.guild.unban(target, reason = modreason)
+            await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
+            await logm.sendlog(logm.unbans, context = context, target = target.id, reason = isemptyreason(reason))
+            sec5 = datetime.datetime.now() + datetime.timedelta(seconds = 5)
+            await discord.utils.sleep_until(sec5)
+            try:
+                recentunbans.remove(target.id)
+            except:
+                pass
+        except:
+            try:
+                recentunbans.remove(target.id)
+            except:
+                pass
+            await pm.throwerror(context, "Couldn't unban the user with id " + str(target.id) + ". User may be unbanned already.")
+        return
+
 @bot.slash_command(description = "Toggles auto message curation of gif-party and miside-great-mita.")
 @guild_only()
 async def autopunishtoggle(context):
