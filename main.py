@@ -304,8 +304,8 @@ async def addunbanreason(context, target: discord.Option(
         return
         
 @addunbanreason.error
-async def cooldown_error(context):
-    pm.throwerror(context, "This command has a global cooldown of 1 minute.")
+async def cooldown_error(context, error):
+    await pm.throwerror(context, "This command has a global cooldown of 1 minute.")
     return
 
 @bot.slash_command(description = "Unbans a user with a reason.")
