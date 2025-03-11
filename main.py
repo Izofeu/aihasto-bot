@@ -32,27 +32,6 @@ intents.members = True
 intents.moderation = True
 
 nocachemembers = discord.MemberCacheFlags.none()
-file = open("animalcount.txt", "rt")
-woofcount = int(file.readline())
-meowcount = int(file.readline())
-file.close()
-
-def getanimal(mode):
-    global woofcount, meowcount
-    if mode == "cat":
-        return str(meowcount)
-    return str(woofcount)
-
-def addanimal(mode):
-    global woofcount, meowcount
-    if mode == "cat":
-        meowcount += 1
-    else:
-        woofcount += 1
-    file = open("animalcount.txt", "wt")
-    file.write(str(woofcount) + "\n" + str(meowcount))
-    file.close()
-    return
 
 bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
 #bot = discord.Bot(intents = intents)
@@ -844,31 +823,8 @@ async def setlogchannel(context, channel: discord.Option(
         logm.loadlogchannelid()
         logm.ready()
         return
-        
-@bot.slash_command(description = "I was forced to add this command by the Polish moderation team :/")
-@guild_only()
-async def meow(context):
-    # Command permission level
-    commandpermissionlevel = 1
-    # Permission check
-    canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
-    if not canrun:
-        return
-    addanimal("cat")
-    await context.respond("Meow :cat:\nI've meowed " + getanimal("cat") + " times on this server.", ephemeral = True)
-    
-@bot.slash_command(description = "For dog lovers <3")
-@guild_only()
-async def woof(context):
-    # Command permission level
-    commandpermissionlevel = 1
-    # Permission check
-    canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
-    if not canrun:
-        return
-    addanimal("dog")
-    await context.respond("Woof :dog:\nI've woofed " + getanimal("dog") + " times on this server.", ephemeral = True)
-            
+
+
 @bot.slash_command(description = "Get user's permission level.")
 @guild_only()
 async def getperms(context):
