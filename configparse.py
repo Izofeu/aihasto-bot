@@ -36,7 +36,7 @@ class parseconfig:
             # Obtain a value from a key.
             return self.config[key]
         except:
-            print("The key does not exist.")
+            raise Exception("The key " + str(key) + " does not exist.")
             return False
     def loadtoken(self):
         # Load bot token

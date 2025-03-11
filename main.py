@@ -32,6 +32,27 @@ intents.members = True
 intents.moderation = True
 
 nocachemembers = discord.MemberCacheFlags.none()
+file = open("animalcount.txt", "rt")
+woofcount = int(file.readline())
+meowcount = int(file.readline())
+file.close()
+
+def getanimal(mode):
+    global woofcount, meowcount
+    if mode == "cat":
+        return str(meowcount)
+    return str(woofcount)
+
+def addanimal(mode):
+    global woofcount, meowcount
+    if mode == "cat":
+        meowcount += 1
+    else:
+        woofcount += 1
+    file = open("animalcount.txt", "wt")
+    file.write(str(woofcount) + "\n" + str(meowcount))
+    file.close()
+    return
 
 bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
 #bot = discord.Bot(intents = intents)
@@ -78,9 +99,9 @@ def isvalidtime(time, maxduration = 14):
         if timeduration <= 0:
             raise InvalidDuration
         # Maximum of 14 days allowed, Discord's limitation for timeouts is 28 days
-        if (timeunit == "d" and timeduration >= maxduration) or (
-        timeunit == "h" and timeduration >= (maxduration * 24)) or (
-        timeunit == "m" and timeduration >= (maxduration * 24 * 60)):
+        if (timeunit == "d" and timeduration > maxduration) or (
+        timeunit == "h" and timeduration > (maxduration * 24)) or (
+        timeunit == "m" and timeduration > (maxduration * 24 * 60)):
             raise Exception("Invalid duration.")
         # Returns a datetime object if time is valid
         date = datetime.datetime.now(datetime.UTC)
@@ -228,7 +249,16 @@ async def checkwarnings():
     await sqlm.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
 async def checkgladiators():
-    await sqlm.removegladiators(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    toremove = await sqlm.removegladiator(date = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    guild = bot.get_guild(cfg.get("guild"))
+    gladiatorrole = guild.get_role(cfg.get("gladiatorid"))
+    for ids in toremove:
+        id = int(ids[0])
+        try:
+            gladiator = await guild.fetch_member(id)
+            await gladiator.remove_roles(gladiatorrole, reason = "Expired gladiator role.")
+        except:
+            continue
     return
     
 @bot.user_command(name = "Show flooders")
@@ -299,27 +329,30 @@ async def addgladiator(context, target: discord.Option(
         try:
             eventmanagerrole = context.author.guild.get_role(cfg.get("eventmanagerid"))
             gladiatorrole = context.author.guild.get_role(cfg.get("gladiatorid"))
+            if eventmanagerrole is None or gladiatorrole is None:
+                raise Exception()
         except:
             await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
             return
-        if not pm.hasrole(context.author, eventmanagerrole):
+        if not pm.hasrole(context.author, eventmanagerrole) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
         time = isvalidtime(duration, 365)
         if not time:
             await pm.throwerror(context, "Invalid Gladiator duration.")
             return
-        untiltimestamp = int(isvalidtime.timestamp())
+        untiltimestamp = int(time.timestamp())
         modreason = sanitizereason(context.author.name, addedrolename = gladiatorrole.name, duration = duration)
         try:
             time = time.strftime("%Y-%m-%d %H:%M:%S")
             await sqlm.addgladiator(target.id, time)
             await target.add_roles(gladiatorrole, reason = modreason)
             await context.respond("Added Gladiator role to <@" + str(target.id) + "> for " + duration + ".", ephemeral = True)
+            await target.send(content = "You have been rewarded a " + gladiatorrole.name + " role by <@" + str(context.author.id) + "> until <t:" + str(untiltimestamp) + ":F>.")
         except:
             await pm.throwerror(context, "Couldn't issue Gladiator role to <@" + str(target.id) + ">.")
             return
-        await logm.sendlog(self.addrole, context = context, target = target, role = gladiatorrole, duration = untiltimestamp)
+        await logm.sendlog(logm.roles, mode = logm.addrole, context = context, target = target, role = gladiatorrole, duration = untiltimestamp)
         return
         
 @bot.slash_command(description = "Removes Mita's Gladiators from a user.")
@@ -335,10 +368,19 @@ async def removegladiator(context, target: discord.Option(
         except:
             await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
             return
-        if not pm.hasrole(context.author, eventmanagerrole):
+        if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
-        # Continue writing code here
+        try:
+            modreason = sanitizereason(context.author.name, removedrolename = gladiatorrole.name)
+            await target.remove_roles(gladiatorrole, reason = modreason)
+            await sqlm.removegladiator(id = str(target.id))
+            await context.respond("Removed Gladiator role from <@" + str(target.id) + ">.", ephemeral = True)
+            await target.send(content = "You have been revoked a " + gladiatorrole.name + " role by <@" + str(context.author.id) + ">.")
+        except:
+            await pm.throwerror(context, "Couldn't remove Gladiator role from <@" + str(target.id) + ">.")
+            return
+        await logm.sendlog(logm.roles, mode = logm.removerole, context = context, target = target, role = gladiatorrole)
         return
 
 @bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
@@ -409,7 +451,7 @@ async def unban(context, target: discord.Option(
 @guild_only()
 async def autopunishtoggle(context):
     # Command permission level
-    commandpermissionlevel = 3
+    commandpermissionlevel = 4
     # Permission check
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
     if not canrun:
@@ -434,14 +476,14 @@ async def clearwarns(context, target: discord.Option(
     description = "Reason for removing the warnings.")
     ):
         # Command permission level
-        commandpermissionlevel = 1
+        commandpermissionlevel = 2
         # Permission check
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
         try:
             await sqlm.removewarnings(target.id)
-            await context.respond("Warnings for user " + target.name + " have been removed.")
+            await context.respond("Warnings for user <@" + str(target.id) + "> have been removed.", ephemeral = True)
             await logm.sendlog(logm.warns, context, target = target, mode = logm.clearwarns, reason = isemptyreason(reason))
         except:
             await pm.throwerror(context, "Error removing warnings.")
@@ -466,7 +508,7 @@ async def warn(context, target: discord.Option(
             return
         expirydate = isvalidtime("3d").strftime("%Y-%m-%d %H:%M:%S")
         warncount = await sqlm.getwarncount(target.id)
-        message = "User " + target.name + " has been issued a warning for " + isemptyreason(reason) + "."
+        message = "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + "."
         if warncount > 0:
             message += " They have " + str(warncount) + " other warning(s) on account."
             class showwarnsbutton(discord.ui.View):
@@ -489,7 +531,7 @@ async def warn(context, target: discord.Option(
             await context.respond(message, ephemeral = True)
         await logm.sendlog(logm.warns, context, mode = logm.addwarn, target = target, reason = isemptyreason(reason))
         try:
-            await target.send("You have been issued a warning by " + context.author.name + " for " + isemptyreason(reason) + ".")
+            await target.send("You have been issued a warning by <@" + str(context.author.id) + "> for " + isemptyreason(reason) + ".")
         except:
             pass
         return
@@ -519,10 +561,10 @@ async def unflooder(context, target: discord.Option(
                 return
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
             await target.remove_roles(flooderrole, reason = modreason)
-            await context.respond("Removed flooder from " + target.name + ".")
+            await context.respond("Removed flooder from <@" + str(target.id) + ">.")
             await logm.sendlog(logm.flooders, context, target = target, mode = logm.removerole, reason = isemptyreason(reason))
         except:
-            await pm.throwerror(context, "Couldn't remove flooder from " + target.name + ".")
+            await pm.throwerror(context, "Couldn't remove flooder from <@" + str(target.id) + ">.")
         return
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
@@ -564,10 +606,10 @@ async def flooder(context, target: discord.Option(
         try:
             await target.add_roles(flooderrole, reason = modreason)
             try:
-                await target.send(content = "You have been issued a flooder role by " + context.author.name + " until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
+                await target.send(content = "You have been issued a flooder role by <@" + str(context.author.id) + "> until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
             except:
                 pass
-            await context.respond("User " + target.name + " has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).", ephemeral = True)
+            await context.respond("User <@" + str(target.id) + "> has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).", ephemeral = True)
             await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
             await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
@@ -651,10 +693,10 @@ async def timeout(context, target: discord.Option(
             modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
             await target.timeout(time, reason = modreason)
             try:
-                await target.send(content = "You have been timed out by " + context.author.name + " for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
+                await target.send(content = "You have been timed out by <@" + str(context.author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
             except:
                 pass
-            await context.respond("User " + target.name + " has been timed out for " + duration + ".", ephemeral = True)
+            await context.respond("User <@" + str(target.id) + "> has been timed out for " + duration + ".", ephemeral = True)
             await logm.sendlog(logm.timeouts, context, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
         except:
             await context.respond("Error issuing a timeout. Check bot permissions.", ephemeral = True)
@@ -680,12 +722,12 @@ async def puppet(context, target: discord.Option(
         puppetrole = inituser.guild.get_role(cfg.get("puppetrole"))
         if pm.hasrole(target, cfg.get("puppetrole")):
             await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
-            await context.respond("Removed Puppet role from " + target.name + ".")
+            await context.respond("Removed Puppet role from <@" + str(target.id) + ">.")
             await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = puppetrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
-            await context.respond("Added Puppet role to " + target.name + ".")
+            await context.respond("Added Puppet role to <@" + str(target.id) + ">.")
             await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = puppetrole)
         return
             
@@ -708,12 +750,12 @@ async def hand(context, target: discord.Option(
         # If user has role, then remove it
         if pm.hasrole(target, cfg.get("handrole")):
             await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
-            await context.respond("Removed Hand role from " + target.name + ".")
+            await context.respond("Removed Hand role from <@" + str(target.id) + ">.")
             await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = handrole)
         # User doesn't have role, remove it
         else:
             await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
-            await context.respond("Added Hand role to " + target.name + ".")
+            await context.respond("Added Hand role to <@" + str(target.id) + ">.")
             await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = handrole)
         return
         
@@ -755,6 +797,32 @@ async def setmodroles(context, puppet: discord.Option(
             await context.respond("Error setting roles.")
         return
         
+@bot.slash_command(description = "Mark which roles are event roles.")
+@guild_only()
+async def seteventroles(context, eventmanager: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as an Event manager role."),
+    gladiator: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Gladiator role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            # Write new ids to config
+            cfg.set("eventmanagerid", eventmanager.id)
+            cfg.set("gladiatorid", gladiator.id)
+            await context.respond("Marked " + eventmanager.name + " as Event manager and " + gladiator.name + " as Gladiator.")
+        except:
+            await pm.throwerror(context, "Error setting roles.")
+        return
+        
 @bot.slash_command(description = "Changes the channel of log messages.")
 @guild_only()
 async def setlogchannel(context, channel: discord.Option(
@@ -776,6 +844,30 @@ async def setlogchannel(context, channel: discord.Option(
         logm.loadlogchannelid()
         logm.ready()
         return
+        
+@bot.slash_command(description = "I was forced to add this command by the Polish moderation team :/")
+@guild_only()
+async def meow(context):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+    if not canrun:
+        return
+    addanimal("cat")
+    await context.respond("Meow :cat:\nI've meowed " + getanimal("cat") + " times on this server.", ephemeral = True)
+    
+@bot.slash_command(description = "For dog lovers <3")
+@guild_only()
+async def woof(context):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+    if not canrun:
+        return
+    addanimal("dog")
+    await context.respond("Woof :dog:\nI've woofed " + getanimal("dog") + " times on this server.", ephemeral = True)
             
 @bot.slash_command(description = "Get user's permission level.")
 @guild_only()

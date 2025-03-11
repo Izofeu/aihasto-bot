@@ -161,11 +161,14 @@ class sqlmanager:
         await self.query(query)
         return
         
-    async def removegladiator(self, id, date = False):
+    async def removegladiator(self, id = 0, date = False):
         if not date:
             query = "DELETE FROM `gladiators` WHERE account_id = " + str(id) + ";"
             await self.query(query)
+            return
         else:
+            query = "SELECT account_id FROM `gladiators` WHERE expiration_date < '" + str(date) + "';"
+            returnquery = await self.query(query)
             query = "DELETE FROM `gladiators` WHERE expiration_date < '" + str(date) + "';"
             await self.query(query)
-        return
+            return returnquery

@@ -6,21 +6,21 @@ class logmanager:
         self.logchannel = ""
         self.loadlogchannelid()
         # categories of logs
-        self.timeouts = 0
-        self.roles = 1
-        self.flooders = 2
-        self.warns = 3
-        self.selfissuedwarn = 4
-        self.slowmodes = 5
-        self.unbans = 6
-        self.unbanreasons = 7
+        self.timeouts = 1
+        self.roles = 2
+        self.flooders = 3
+        self.warns = 4
+        self.selfissuedwarn = 5
+        self.slowmodes = 6
+        self.unbans = 7
+        self.unbanreasons = 8
         
-        self.addrole = 0
-        self.removerole = 1
+        self.addrole = 1
+        self.removerole = 2
         
-        self.addwarn = 0
-        self.clearwarns = 1
-        self.noreason = 2
+        self.addwarn = 1
+        self.clearwarns = 2
+        self.noreason = 3
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
@@ -44,8 +44,8 @@ class logmanager:
                 log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
-                if role.id == self.cfg.get("gladiatorrole"):
-                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) ":F."
+                if role.id == self.cfg.get("gladiatorid"):
+                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F>."
                 else:
                     log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
             else:
