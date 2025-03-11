@@ -66,7 +66,7 @@ def sanitizereason(author, reason = False, addedrolename = False, removedrolenam
     return finalreason
 
 # Check if duration inputted by user in commands is valid
-def isvalidtime(time):
+def isvalidtime(time, maxduration = 14):
     try:
         # Time format should be a number followed by a letter like minute, hour, day
         timeunit = time[-1:]
@@ -78,10 +78,10 @@ def isvalidtime(time):
         if timeduration <= 0:
             raise InvalidDuration
         # Maximum of 14 days allowed, Discord's limitation for timeouts is 28 days
-        if (timeunit == "d" and timeduration >= 14) or (
-        timeunit == "h" and timeduration >= 336) or (
-        timeunit == "m" and timeduration >= 20160):
-            raise InvalidDuration
+        if (timeunit == "d" and timeduration >= maxduration) or (
+        timeunit == "h" and timeduration >= (maxduration * 24)) or (
+        timeunit == "m" and timeduration >= (maxduration * 24 * 60)):
+            raise Exception("Invalid duration.")
         # Returns a datetime object if time is valid
         date = datetime.datetime.now(datetime.UTC)
         # Calculate the time when a punishment should end
@@ -196,6 +196,7 @@ async def on_ready():
 @tasks.loop(seconds=60)
 async def checkflooders():
     await checkwarnings()
+    await checkgladiators()
     # Get expired flooders as a tuple of user ids whose flooders have expired
     expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     if not expiredflooders:
@@ -225,6 +226,9 @@ async def checkflooders():
     return
 async def checkwarnings():
     await sqlm.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    return
+async def checkgladiators():
+    await sqlm.removegladiators(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
 @bot.user_command(name = "Show flooders")
@@ -281,6 +285,62 @@ async def showwarnings(context, member: discord.Member):
         await context.respond(message, ephemeral = True)
     return
     
+@bot.slash_command(description = "Adds Mita's Gladiators to a user.")
+@guild_only()
+async def addgladiator(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Who to add the Gladiator role to."),
+    duration: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "The duration of the Gladiator. Examples: 30d - 30 days, 24h - 24 hours.")
+    ):
+        try:
+            eventmanagerrole = context.author.guild.get_role(cfg.get("eventmanagerid"))
+            gladiatorrole = context.author.guild.get_role(cfg.get("gladiatorid"))
+        except:
+            await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
+            return
+        if not pm.hasrole(context.author, eventmanagerrole):
+            await pm.throwerror(context, "You do not have Event Manager role.")
+            return
+        time = isvalidtime(duration, 365)
+        if not time:
+            await pm.throwerror(context, "Invalid Gladiator duration.")
+            return
+        untiltimestamp = int(isvalidtime.timestamp())
+        modreason = sanitizereason(context.author.name, addedrolename = gladiatorrole.name, duration = duration)
+        try:
+            time = time.strftime("%Y-%m-%d %H:%M:%S")
+            await sqlm.addgladiator(target.id, time)
+            await target.add_roles(gladiatorrole, reason = modreason)
+            await context.respond("Added Gladiator role to <@" + str(target.id) + "> for " + duration + ".", ephemeral = True)
+        except:
+            await pm.throwerror(context, "Couldn't issue Gladiator role to <@" + str(target.id) + ">.")
+            return
+        await logm.sendlog(self.addrole, context = context, target = target, role = gladiatorrole, duration = untiltimestamp)
+        return
+        
+@bot.slash_command(description = "Removes Mita's Gladiators from a user.")
+@guild_only()
+async def removegladiator(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Who to remove the Gladiator role from.")
+    ):
+        try:
+            eventmanagerrole = context.author.guild.get_role(cfg.get("eventmanagerid"))
+            gladiatorrole = context.author.guild.get_role(cfg.get("gladiatorid"))
+        except:
+            await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
+            return
+        if not pm.hasrole(context.author, eventmanagerrole):
+            await pm.throwerror(context, "You do not have Event Manager role.")
+            return
+        # Continue writing code here
+        return
+
 @bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
 @guild_only()
 @commands.cooldown(1, 60, commands.BucketType.default)

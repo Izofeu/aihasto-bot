@@ -62,6 +62,16 @@ class sqlmanager:
                 ");"
                 )
                 await cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `gladiators`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`expiration_date` DATETIME NOT NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -144,3 +154,18 @@ class sqlmanager:
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         result = await self.query(query)
         return int(result[0][0])
+        
+    async def addgladiator(self, id, date):
+        await self.removegladiator(id)
+        query = "INSERT INTO `gladiators`(`account_id`, `expiration_date`) VALUES (" + str(id) + ", '" + str(date) + "');"
+        await self.query(query)
+        return
+        
+    async def removegladiator(self, id, date = False):
+        if not date:
+            query = "DELETE FROM `gladiators` WHERE account_id = " + str(id) + ";"
+            await self.query(query)
+        else:
+            query = "DELETE FROM `gladiators` WHERE expiration_date < '" + str(date) + "';"
+            await self.query(query)
+        return

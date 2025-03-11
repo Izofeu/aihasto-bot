@@ -44,7 +44,10 @@ class logmanager:
                 log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
-                log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
+                if role.id == self.cfg.get("gladiatorrole"):
+                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) ":F."
+                else:
+                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
             else:
                 log = "A role " + role.name + " has been removed from <@" + str(target.id) + "> by " + context.author.name + "."
         elif category == self.flooders:
