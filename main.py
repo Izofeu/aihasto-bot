@@ -262,39 +262,11 @@ async def showflooders(context, member: discord.Member):
 @bot.user_command(name = "Show warnings")
 @guild_only()
 async def showwarnings(context, member: discord.Member):
-    # Do not run the permission check if we only want the message for the button response
-    # as we've already ran a permission check there
-    if context != 27:
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
-        if not canrun:
-            return
-    warningscount, warnings = await sqlm.getwarnings(member.id)
-    warningscount = warningscount[0][0]
-    if warningscount == 0:
-        message = member.name + " has not received any warnings."
-    else:
-        message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last three warnings:"
-        #print(warnings)
-        #print(len(warnings))
-        format = "%Y-%m-%d %H:%M:%S %z"
-        for warns in warnings:
-            date = warns[1] - datetime.timedelta(days = 3)
-            # datetime object assumes timezone of the machine
-            # this part of code recreates the object with utc timezone
-            date = str(date)
-            date += " +0000"
-            date = datetime.datetime.strptime(date, format)
-            time = int(date.timestamp())
-            message += "\n<t:" + str(time) + ":R> - " + str(warns[2])
-    # We cannot add params to a command function
-    # so we reuse one of arguments as a workaround
-    if context == 27:
-        return message
-    else:
-        await context.respond(message, ephemeral = True)
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    await cmdm.warn(context, target = member, showwarns = True)
     return
     
 @bot.slash_command(description = "Adds Mita's Gladiators to a user.")
@@ -463,12 +435,7 @@ async def clearwarns(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        try:
-            await sqlm.removewarnings(target.id)
-            await context.respond("Warnings for user <@" + str(target.id) + "> have been removed.", ephemeral = True)
-            await logm.sendlog(logm.warns, context, target = target, mode = logm.clearwarns, reason = isemptyreason(reason))
-        except:
-            await pm.throwerror(context, "Error removing warnings.")
+        await cmdm.warn(context, target, reason, True, False)
         return
     
 @bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
@@ -488,34 +455,7 @@ async def warn(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        expirydate = isvalidtime("3d").strftime("%Y-%m-%d %H:%M:%S")
-        warncount = await sqlm.getwarncount(target.id)
-        message = "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + "."
-        if warncount > 0:
-            message += " They have " + str(warncount) + " other warning(s) on account."
-            class showwarnsbutton(discord.ui.View):
-                @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)
-                async def button_callback(self, button, interaction):
-                    # Command permission level
-                    commandpermissionlevel = 1
-                    # Permission check
-                    canrun = await pm.canrun(context = interaction, member = interaction.user, commandpermissionlevel = commandpermissionlevel, interaction = True)
-                    if not canrun:
-                        return
-                    await interaction.response.send_message(await showwarnings(27, target), ephemeral = True)
-        else:
-            message += " This is their first warning."
-        await sqlm.addwarning(target.id, expirydate, isemptyreason(reason))
-        if warncount > 0:
-            # Delete the message after 1 minute to prevent a memory leak with too many buttons
-            await context.respond(message, view = showwarnsbutton(), ephemeral = True, delete_after = 120)
-        else:
-            await context.respond(message, ephemeral = True)
-        await logm.sendlog(logm.warns, context, mode = logm.addwarn, target = target, reason = isemptyreason(reason))
-        try:
-            await target.send("You have been issued a warning by <@" + str(context.author.id) + "> for " + isemptyreason(reason) + ".")
-        except:
-            pass
+        await cmdm.warn(context, target, reason, False, False)
         return
     
 @bot.slash_command(description = "Remove a flooder from a user.")
@@ -581,23 +521,7 @@ async def slowmode(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
-        if not str(target.type) == "text":
-            await pm.throwerror(context, "The channel you've selected is not a text channel.")
-            return
-        # Only channels with "general" in its name can have their slowmodes edited
-        if "general" not in str(target.name):
-            await pm.throwerror(context, "You can only edit slow mode for general channels.")
-            return
-        if delay < 5 or delay > 21600:
-            await pm.throwerror(context, "Invalid slow mode duration. Allowed values: 5 - 21600 seconds.")
-            return
-        try:
-            await target.edit(reason = sanitizereason(context.author.name), slowmode_delay = delay)
-        except:
-            await pm.throwerror(context, "Unable to edit the channel - I don't have permission.")
-            return
-        await context.respond("Slow mode for channel " + target.name + " set to " + str(delay) + " seconds.")
-        await logm.sendlog(logm.slowmodes, context = context, duration = delay, channelid = target.id)
+        await cmdm.setslowmode(context, target, delay)
         return
     
 @bot.slash_command(description = "Time-out a user for any duration.")
@@ -621,23 +545,7 @@ async def timeout(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
-        time = isvalidtime(duration)
-        if not time:
-            await context.respond("Invalid timeout duration.", ephemeral = True)
-            return
-        untiltimestamp = int(time.timestamp())
-        try:
-            # Issue timeout
-            modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
-            await target.timeout(time, reason = modreason)
-            try:
-                await target.send(content = "You have been timed out by <@" + str(context.author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
-            except:
-                pass
-            await context.respond("User <@" + str(target.id) + "> has been timed out for " + duration + ".", ephemeral = True)
-            await logm.sendlog(logm.timeouts, context, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
-        except:
-            await context.respond("Error issuing a timeout. Check bot permissions.", ephemeral = True)
+        await cmdm.timeout(context, target, duration, reason, isslash = True)
         return
         
 
