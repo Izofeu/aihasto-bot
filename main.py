@@ -8,6 +8,8 @@ import datetime
 import permmanager
 import sqlmanager
 import logmanager
+import commandmanager
+import rolemanager
 
 messagecache = []
 recentunbans = []
@@ -34,7 +36,6 @@ intents.moderation = True
 nocachemembers = discord.MemberCacheFlags.none()
 
 bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
-#bot = discord.Bot(intents = intents)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
@@ -44,11 +45,13 @@ token = cfg.loadtoken()
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot)
+rolem = rolemanager.rolemanager(cfg, bot)
+cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm)
 
 def isemptyreason(reason):
     if not reason:
         reason = "No reason provided."
-    return reason
+    return reason[:511]
 
 def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False, unban = False):
     finalreason = "Responsible user: " + author
@@ -532,18 +535,7 @@ async def unflooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        try:
-            await sqlm.removeflooder(target.id)
-            flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
-            if not pm.hasrole(target, flooderrole.id):
-                await pm.throwerror(context, "User doesn't have a flooder role!")
-                return
-            modreason = sanitizereason(context.author.name, reason = reason, removedrolename = flooderrole.name)
-            await target.remove_roles(flooderrole, reason = modreason)
-            await context.respond("Removed flooder from <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.flooders, context, target = target, mode = logm.removerole, reason = isemptyreason(reason))
-        except:
-            await pm.throwerror(context, "Couldn't remove flooder from <@" + str(target.id) + ">.")
+        await cmdm.flooder(context, target, False, reason, isslash = True, unflooder = True)
         return
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
@@ -567,42 +559,9 @@ async def flooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
-        # Check if time inputted by user is valid
-        
-        time = isvalidtime(duration)
-        if not time:
-            await pm.throwerror(context, "Invalid flooder duration.")
-            return
-        # Calculate the unix timestamp of end date of punishment to display it nicely to the user
-        untiltimestamp = int(time.timestamp())
-        
-        flooderrole = context.author.guild.get_role(cfg.get("flooderrole"))
-        if pm.hasrole(target, flooderrole.id):
-            await pm.throwerror(context, "User has flooder role already!")
-            return
-        modreason = sanitizereason(context.author.name, reason = reason, duration = duration, addedrolename = flooderrole.name)
-        # Add flooder role
-        try:
-            await target.add_roles(flooderrole, reason = modreason)
-            try:
-                await target.send(content = "You have been issued a flooder role by <@" + str(context.author.id) + "> until <t:" + str(untiltimestamp) + ":F> for " + isemptyreason(reason) + ".")
-            except:
-                pass
-            await context.respond("User <@" + str(target.id) + "> has been issued a Flooder role for " + duration + " (until <t:" + str(untiltimestamp) + ":F>).", ephemeral = True)
-            await logm.sendlog(logm.flooders, context, mode = logm.addrole, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
-        except:
-            await pm.throwerror(context, "Couldn't mark user as flooder. User may already be a flooder.")
-            return
-        try:
-            # Convert the time to SQL datetime format
-            time = time.strftime("%Y-%m-%d %H:%M:%S")
-            # If user has any pending flooders in the database for whatever reason, mark them as removed
-            await sqlm.markflooderasremoved(target.id)
-            # Add flooder record to database
-            await sqlm.addflooder(target.id, time)
-        except:
-            await pm.throwerror(context, "Failure inserting a record into the database. Issued flooder may not be autoremoved.")
+        await cmdm.flooder(context, target, duration, reason, isslash = True, unflooder = False)
         return
+       
 
 
 @bot.slash_command(description = "Edit slow mode for a general channel.")
