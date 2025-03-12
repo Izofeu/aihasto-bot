@@ -27,6 +27,9 @@ class permmanager:
                 return False
             # If a command affects another user, perform a hierarchy check
             if target:
+                if target.bot:
+                    await self.throwerror(context, "The target must't be a bot.")
+                    return False
                 targetuser_permissionlevel = self.getpermissionlevel(target)
                 if targetuser_permissionlevel >= inituser_permissionlevel:
                     await self.throwerror(context, "The target user needs to be lower than your highest role.")
