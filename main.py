@@ -208,6 +208,17 @@ async def checktemproles():
     await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
+@bot.user_command(name = "Issue flooder")
+@guild_only()
+async def floodermenu(context, member: discord.Member):
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.openfloodermenu(context, member)
+    return
+
 @bot.user_command(name = "Show flooders")
 @guild_only()
 async def showflooders(context, member: discord.Member):
@@ -251,6 +262,8 @@ async def showwarnings(context, member: discord.Member):
     commandpermissionlevel = 1
     # Permission check
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
     await cmdm.warn(context, target = member, showwarns = True)
     return
     
@@ -261,12 +274,13 @@ async def addmustard(context, target: discord.Option(
     required = True,
     description = "User to add a Mr Mustard role.")
     ):
-         # Command permission level
+        # Command permission level
         commandpermissionlevel = 2
         # Permission check
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.addtemprole, rolem.mrmustardrole, duration = "24h")
         return
         
@@ -283,6 +297,7 @@ async def removemustard(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.mrmustardrole)
         return
     
@@ -312,6 +327,7 @@ async def addgladiator(context, target: discord.Option(
         if not pm.hasrole(context.author, eventmanagerrole) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.addtemprole, rolem.gladiatorrole, duration = duration, reason = reason)
         return
         
@@ -335,6 +351,7 @@ async def removegladiator(context, target: discord.Option(
         if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.gladiatorrole, reason = reason)
         return
 
@@ -356,6 +373,7 @@ async def addunbanreason(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await logm.sendlog(logm.unbanreasons, context = context, target = target, reason = isemptyreason(reason))
         await context.respond("Successfully added an unban reason of <@" + str(target.id) + "> (" + str(target.id) + ") to log channel.")
         return
@@ -382,6 +400,7 @@ async def unban(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         try:
             modreason = sanitizereason(context.author.name, reason = reason, unban = True)
             recentunbans.append(target.id)
@@ -436,6 +455,7 @@ async def clearwarns(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.warn(context, target, reason, True, False)
         return
     
@@ -456,6 +476,7 @@ async def warn(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.warn(context, target, reason, False, False)
         return
     
@@ -476,6 +497,7 @@ async def unflooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, mode = rolem.removetemprole, roletype = rolem.flooderrole, reason = reason)
         return
     
@@ -500,6 +522,7 @@ async def flooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, mode = rolem.addtemprole, roletype = rolem.flooderrole, duration = duration, reason = reason)
         return
 
@@ -520,6 +543,7 @@ async def slowmode(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.setslowmode(context, target, delay)
         return
     
@@ -544,6 +568,7 @@ async def timeout(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
+        await context.defer(ephemeral = True)
         await cmdm.timeout(context, target, duration, reason, isslash = True)
         return
         

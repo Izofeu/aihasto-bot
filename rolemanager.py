@@ -47,7 +47,7 @@ class rolemanager:
         await self.sqlm.markexpiredtemprolesasremoved(date)
         return
         
-    async def temprole(self, context, target, mode, role_type, duration = False, reason = False):
+    async def temprole(self, context, target, mode, role_type, duration = False, reason = False, interaction = False):
         roleid = self.getroleid(role_type)
         guild = self.bot.get_guild(self.cfg.get("guild"))
         role = guild.get_role(roleid)
@@ -59,26 +59,26 @@ class rolemanager:
             reason = isemptyreason(reason)
             if role_type == self.flooderrole:
                 if self.pm.hasrole(target, role.id):
-                    await self.pm.throwerror(context, "User has " + role.name + " role already!")
-                    return False, False, False, False
+                    await self.pm.respond(context, "User has " + role.name + " role already!", interaction = interaction)
+                    return False, False, False
             date, timestamp = isvalidtime(duration, maxduration = maxduration)
             if not date:
-                await self.pm.throwerror(context, "Invalid time duration.")
-                return False, False, False, False
+                await self.pm.respond(context, "Invalid time duration.", interaction = interaction)
+                return False, False, False
             date = date.strftime("%Y-%m-%d %H:%M:%S")
             await target.add_roles(role, reason = modreason)
             await self.sqlm.addtemprole(target.id, context.author.id, date, role_type, reason)
-            await context.respond("Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", ephemeral = True)
+            await self.pm.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", interaction = interaction)
             await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
-            return role, timestamp, reason, True
+            return role, timestamp, reason
         else:
             modreason = sanitizereason(context.author.name, reason = reason, removedrolename = role.name, duration = duration)
             reason = isemptyreason(reason)
             if not self.pm.hasrole(target, role.id):
-                await context.respond("User doesn't have " + role.name + " role!", ephemeral = True)
-                return False, False, False, False
+                await self.pm.respond(context, "User doesn't have " + role.name + " role!", interaction = interaction)
+                return False, False, False
             await target.remove_roles(role, reason = modreason)
             await self.sqlm.removetemprole(target.id, role_type)
-            await context.respond("Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", ephemeral = True)
+            await self.pm.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", interaction = interaction)
             await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.removerole, target = target, reason = reason, role = role)
-            return role, False, reason, True
+            return role, False, reason

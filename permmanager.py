@@ -61,6 +61,13 @@ class permmanager:
                 return True
         return False
     
+    async def respond(self, context, message, interaction, ephemeral = True):
+        if not interaction:
+            await context.respond(message, ephemeral = ephemeral)
+        else:
+            await interaction.response.send_message(message, ephemeral = ephemeral)
+        return
+    
     async def throwerror(self, context, reason):
         await context.respond(reason, ephemeral = True)
         return
