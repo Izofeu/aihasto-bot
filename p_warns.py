@@ -33,8 +33,8 @@ class warns:
                     self.getwarningmessage = getwarningmessage
         else:
             message += " This is their first warning."
-        modreason = "<@" + str(context.author.id) + "> - " + isemptyreason(reason)
-        await self.sqlm.addwarning(target.id, expirydate, modreason)
+        modreason = isemptyreason(reason)
+        await self.sqlm.addwarning(context.author.id, target.id, expirydate, modreason)
         if warncount > 0:
             # Delete the message after 1 minute to prevent a memory leak with too many buttons
             await context.respond(message, view = showwarnsbutton(self.pm, self.getwarningmessage), ephemeral = True, delete_after = 120)
@@ -61,21 +61,22 @@ class warns:
         warningscount, warnings = await self.sqlm.getwarnings(member.id)
         warningscount = warningscount[0][0]
         if warningscount == 0:
-            message = member.name + " has not received any warnings."
+            message = "<@" + str(member.id) + "> has not received any warnings."
         else:
-            message = member.name + " has received " + str(warningscount) + " warnings. Here's the date and reason of the last three warnings:"
+            message = "<@" + str(member.id) + "> has received " + str(warningscount) + " warnings. Here's the date, issuer and reason of the last ten warnings:"
             #print(warnings)
             #print(len(warnings))
             format = "%Y-%m-%d %H:%M:%S %z"
             for warns in warnings:
-                date = warns[1] - datetime.timedelta(days = 3)
+                date = warns[2] - datetime.timedelta(days = 3)
                 # datetime object assumes timezone of the machine
                 # this part of code recreates the object with utc timezone
                 date = str(date)
                 date += " +0000"
                 date = datetime.datetime.strptime(date, format)
                 time = int(date.timestamp())
-                message += "\n<t:" + str(time) + ":R> - " + str(warns[2])
+                message += "\n<t:" + str(time) + ":R> - <@" + str(warns[1]) + "> - " + str(warns[3])
+                message = message[:1999]
         return message
         
     async def showwarnings(self, context, member):

@@ -8,7 +8,7 @@ class logmanager:
         # categories of logs
         self.timeouts = 1
         self.roles = 2
-        self.flooders = 3
+        self.flooders = 3 # obsolete
         self.warns = 4
         self.selfissuedwarn = 5
         self.slowmodes = 6
@@ -51,11 +51,6 @@ class logmanager:
                     log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
             else:
                 log = "A role " + role.name + " has been removed from <@" + str(target.id) + "> by " + context.author.name + "."
-        elif category == self.flooders:
-            if mode == self.addrole:
-                log = "A Flooder role has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
-            else:
-                log = "A Flooder role has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
         elif category == self.warns:
             if mode == self.addwarn:
                 log = "A warning has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."

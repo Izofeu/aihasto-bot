@@ -133,20 +133,15 @@ class sqlmanager:
         query = "UPDATE `temproles` SET removed = 1 WHERE expiration_date < '" + currentdate + "';"
         await self.query(query)
         return
-    
-    async def removeflooder(self, id):
-        query = "DELETE FROM `temproles` WHERE account_id = " + str(id) + " AND removed = 0 AND role_type = " + str(self.flooderrole) + ";"
-        await self.query(query)
-        return
         
     async def deleteoldtemproles(self):
         query = "DELETE FROM `temproles` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
         await self.query(query)
         return
         
-    async def addwarning(self, id, expirydate, reason):
-        query = ("INSERT INTO `warns` (`account_id`, `expiration_date`, `reason`) VALUES (" +
-        str(id) + ", '" + str(expirydate) + "', %s);")
+    async def addwarning(self, issuerid, id, expirydate, reason):
+        query = ("INSERT INTO `warns` (`account_id`, `issuer_id`, `expiration_date`, `reason`) VALUES (" +
+        str(id) + ", " + str(issuerid) + ", '" + str(expirydate) + "', %s);")
         await self.query(query, [reason])
         return
         
@@ -161,7 +156,7 @@ class sqlmanager:
         return
         
     async def getwarnings(self, id):
-        query = "SELECT id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 3;"
+        query = "SELECT id, issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 10;"
         result = await self.query(query)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         count = await self.query(query)
@@ -181,21 +176,3 @@ class sqlmanager:
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         result = await self.query(query)
         return int(result[0][0])
-        
-    async def addgladiator(self, id, date):
-        await self.removegladiator(id)
-        query = "INSERT INTO `temproles`(`account_id`, `expiration_date`, `role_type`) VALUES (" + str(id) + ", '" + str(date) + "', " + str(self.gladiatorrole) + ");"
-        await self.query(query)
-        return
-        
-    async def removegladiator(self, id = 0, date = False):
-        if not date:
-            query = "DELETE FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND account_id = " + str(id) + ";"
-            await self.query(query)
-            return
-        else:
-            query = "SELECT account_id FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND expiration_date < '" + str(date) + "';"
-            returnquery = await self.query(query)
-            query = "DELETE FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND expiration_date < '" + str(date) + "';"
-            await self.query(query)
-            return returnquery

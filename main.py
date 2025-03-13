@@ -450,8 +450,6 @@ async def flooder(context, target: discord.Option(
             return
         await cmdm.temprole(context, target, mode = rolem.addtemprole, roletype = rolem.flooderrole, duration = duration, reason = reason)
         return
-       
-
 
 @bot.slash_command(description = "Edit slow mode for a general channel.")
 @guild_only()
