@@ -45,7 +45,7 @@ token = cfg.loadtoken()
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot)
-rolem = rolemanager.rolemanager(cfg, bot)
+rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm)
 cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm)
 
 def isemptyreason(reason):
@@ -192,55 +192,20 @@ async def on_message(message):
 async def on_ready():
     print("Logged in to Discord.")
     print("successfully finished startup")
-    # Start periodic task for checking expired flooders
+    # Start periodic task for checking expired temproles
     logm.ready()
-    checkflooders.start()
+    checkmodactions.start()
     
 @tasks.loop(seconds=60)
-async def checkflooders():
+async def checkmodactions():
     await checkwarnings()
-    await checkgladiators()
-    # Get expired flooders as a tuple of user ids whose flooders have expired
-    expiredflooders = await sqlm.getexpiredflooders(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
-    if not expiredflooders:
-        await sqlm.removeoldflooders()
-        return
-    # Obtain guild object from guild id from config
-    guild = bot.get_guild(cfg.get("guild"))
-    # Obtain flooder role object from flooder role id from config
-    flooderrole = guild.get_role(cfg.get("flooderrole"))
-    # For each flooder, perform a flooder role removal and remove the database entry
-    for flooderid in expiredflooders:
-        # flooder is is a tuple, first result is a pure id
-        id = int(flooderid[0])
-        # Get member object
-        try:
-            flooder = await guild.fetch_member(id)
-        except:
-            await sqlm.markflooderasremoved(id)
-            continue
-        try:
-            # Remove role
-            await flooder.remove_roles(flooderrole, reason = "Expired flooder role.")
-            await sqlm.markflooderasremoved(flooder.id)
-        except:
-            # If role removal goes wrong, for example the user got the role removed manually, then ignore the error
-            print("Couldn't remove flooder role from " + str(flooder) + ".")
+    await checktemproles()
     return
 async def checkwarnings():
     await sqlm.deleteexpiredwarns(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
-async def checkgladiators():
-    toremove = await sqlm.removegladiator(date = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
-    guild = bot.get_guild(cfg.get("guild"))
-    gladiatorrole = guild.get_role(cfg.get("gladiatorid"))
-    for ids in toremove:
-        id = int(ids[0])
-        try:
-            gladiator = await guild.fetch_member(id)
-            await gladiator.remove_roles(gladiatorrole, reason = "Expired gladiator role.")
-        except:
-            continue
+async def checktemproles():
+    await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
 @bot.user_command(name = "Show flooders")
@@ -278,7 +243,11 @@ async def addgladiator(context, target: discord.Option(
     duration: discord.Option(
     discord.SlashCommandOptionType.string,
     required = True,
-    description = "The duration of the Gladiator. Examples: 30d - 30 days, 24h - 24 hours.")
+    description = "The duration of the Gladiator. Examples: 30d - 30 days, 24h - 24 hours."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for issuing the Gladiator role.")
     ):
         try:
             eventmanagerrole = context.author.guild.get_role(cfg.get("eventmanagerid"))
@@ -291,22 +260,7 @@ async def addgladiator(context, target: discord.Option(
         if not pm.hasrole(context.author, eventmanagerrole) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
-        time = isvalidtime(duration, 365)
-        if not time:
-            await pm.throwerror(context, "Invalid Gladiator duration.")
-            return
-        untiltimestamp = int(time.timestamp())
-        modreason = sanitizereason(context.author.name, addedrolename = gladiatorrole.name, duration = duration)
-        try:
-            time = time.strftime("%Y-%m-%d %H:%M:%S")
-            await sqlm.addgladiator(target.id, time)
-            await target.add_roles(gladiatorrole, reason = modreason)
-            await context.respond("Added Gladiator role to <@" + str(target.id) + "> for " + duration + ".", ephemeral = True)
-            await target.send(content = "You have been rewarded a " + gladiatorrole.name + " role by <@" + str(context.author.id) + "> until <t:" + str(untiltimestamp) + ":F>.")
-        except:
-            await pm.throwerror(context, "Couldn't issue Gladiator role to <@" + str(target.id) + ">.")
-            return
-        await logm.sendlog(logm.roles, mode = logm.addrole, context = context, target = target, role = gladiatorrole, duration = untiltimestamp)
+        await cmdm.temprole(context, target, rolem.addtemprole, rolem.gladiatorrole, duration = duration, reason = reason)
         return
         
 @bot.slash_command(description = "Removes Mita's Gladiators from a user.")
@@ -314,7 +268,11 @@ async def addgladiator(context, target: discord.Option(
 async def removegladiator(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
-    description = "Who to remove the Gladiator role from.")
+    description = "Who to remove the Gladiator role from."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for removing the Gladiator role.")
     ):
         try:
             eventmanagerrole = context.author.guild.get_role(cfg.get("eventmanagerid"))
@@ -325,16 +283,7 @@ async def removegladiator(context, target: discord.Option(
         if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
-        try:
-            modreason = sanitizereason(context.author.name, removedrolename = gladiatorrole.name)
-            await target.remove_roles(gladiatorrole, reason = modreason)
-            await sqlm.removegladiator(id = str(target.id))
-            await context.respond("Removed Gladiator role from <@" + str(target.id) + ">.", ephemeral = True)
-            await target.send(content = "You have been revoked a " + gladiatorrole.name + " role by <@" + str(context.author.id) + ">.")
-        except:
-            await pm.throwerror(context, "Couldn't remove Gladiator role from <@" + str(target.id) + ">.")
-            return
-        await logm.sendlog(logm.roles, mode = logm.removerole, context = context, target = target, role = gladiatorrole)
+        await cmdm.temprole(context, target, rolem.removetemprole, rolem.gladiatorrole, reason = reason)
         return
 
 @bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
@@ -475,7 +424,7 @@ async def unflooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        await cmdm.flooder(context, target, False, reason, isslash = True, unflooder = True)
+        await cmdm.temprole(context, target, mode = rolem.removetemprole, roletype = rolem.flooderrole, reason = reason)
         return
     
 @bot.slash_command(description = "Issue a flooder to a user for a certain duration.")
@@ -499,7 +448,7 @@ async def flooder(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
         if not canrun:
             return
-        await cmdm.flooder(context, target, duration, reason, isslash = True, unflooder = False)
+        await cmdm.temprole(context, target, mode = rolem.addtemprole, roletype = rolem.flooderrole, duration = duration, reason = reason)
         return
        
 

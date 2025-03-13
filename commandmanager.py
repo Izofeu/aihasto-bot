@@ -1,4 +1,3 @@
-import p_flooders
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -13,14 +12,9 @@ class cmdmanager:
         self.rolem = rolemanager
         self.logm = log
         
-        self.flooders = p_flooders.flooders(cfg, bot, pm, log, sql)
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
-        
-    async def flooder(self, context, target, duration, reason, isslash, unflooder):
-        await self.flooders.issueflooder(context, target, duration, reason, isslash, unflooder)
-        return
         
     async def timeout(self, context, target, duration, reason, isslash):
         await self.timeouts.issuetimeout(context, target, duration, reason, isslash)
@@ -37,4 +31,18 @@ class cmdmanager:
             await self.warns.clearwarns(context, target, reason)
         else:
             await self.warns.addwarn(context, target, reason)
+        return
+        
+    async def temprole(self, context, target, mode, roletype, duration = False, reason = False):
+        role, timestamp, reason, success = await self.rolem.temprole(context, target, mode, roletype, duration = duration, reason = reason)
+        if not role:
+            return
+        if mode == self.rolem.addtemprole:
+            message = "You have been issued a " + role.name + " role by <@" + str(context.author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
+        else:
+            if success:
+                message = "You have been prematurely removed from a " + role.name + " role by <@" + str(context.author.id) + " for " + reason + "."
+            else:
+                return
+        await target.send(message)
         return

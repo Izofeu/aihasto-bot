@@ -48,6 +48,7 @@ class sqlmanager:
                 "(" +
                 "`id` INT NOT NULL AUTO_INCREMENT," +
                 "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL," +
                 "`expiration_date` DATETIME NOT NULL," +
                 "`reason` VARCHAR(512) NOT NULL," +
                 "PRIMARY KEY (id)" +
@@ -59,6 +60,7 @@ class sqlmanager:
                 "(" +
                 "`id` INT NOT NULL AUTO_INCREMENT," +
                 "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL DEFAULT '0'," +
                 "`expiration_date` DATETIME NOT NULL," +
                 "`role_type` INT NOT NULL," +
                 "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
@@ -95,24 +97,40 @@ class sqlmanager:
             # Return the query result
         return result
         
-    async def addflooder(self, id, duration):
-        # Prepare the query for adding a flooder record
-        query = (
-        "INSERT INTO `temproles` (`account_id`, `expiration_date`, `role_type`) VALUES (" +
-        str(id) + ", '" + str(duration) + "', " + str(self.flooderrole) +
-        ");"
-        )
+    async def addtemprole(self, id, issuer_id, duration, role_type, reason = False):
+        # Prepare the query for adding a temprole record
+        query = "UPDATE `temproles` SET removed = 1 WHERE account_id = " + str(id) + " AND role_type = " + str(role_type) + ";"
+        await self.query(query)
+        if reason:
+            query = (
+            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `role_type`, `reason`) VALUES (" +
+            str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', " + str(role_type) + ", %s" +
+            ");"
+            )
+            await self.query(query, [reason])
+            return
+        else:
+            query = (
+            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `role_type`) VALUES (" +
+            str(id) + ", '" + str(duration) + "', " + str(role_type) +
+            ");"
+            )
         await self.query(query)
         return
         
-    async def getexpiredflooders(self, currentdate):
-        # Get all expired flooders
-        query = "SELECT `account_id` FROM `temproles` WHERE removed = 0 AND role_type = " + str(self.flooderrole) + " AND expiration_date < '" + currentdate + "';"
+    async def removetemprole(self, id, role_type):
+        query = "DELETE FROM `temproles` WHERE removed = 0 AND account_id = " + str(id) + " AND role_type = " + str(role_type) + ";"
+        await self.query(query)
+        return
+        
+    async def getexpiredtemproles(self, currentdate):
+        # Get all expired temp roles
+        query = "SELECT `account_id`, `role_type` FROM `temproles` WHERE removed = 0 AND expiration_date < '" + currentdate + "';"
         result = await self.query(query)
         return result
         
-    async def markflooderasremoved(self, id):
-        query = "UPDATE `temproles` SET removed = 1 WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + ";"
+    async def markexpiredtemprolesasremoved(self, currentdate):
+        query = "UPDATE `temproles` SET removed = 1 WHERE expiration_date < '" + currentdate + "';"
         await self.query(query)
         return
     
@@ -121,8 +139,8 @@ class sqlmanager:
         await self.query(query)
         return
         
-    async def removeoldflooders(self):
-        query = "DELETE FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
+    async def deleteoldtemproles(self):
+        query = "DELETE FROM `temproles` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
         await self.query(query)
         return
         

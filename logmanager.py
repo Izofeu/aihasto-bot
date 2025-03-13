@@ -14,6 +14,7 @@ class logmanager:
         self.slowmodes = 6
         self.unbans = 7
         self.unbanreasons = 8
+        self.temproles = 9
         
         self.addrole = 1
         self.removerole = 2
@@ -72,6 +73,11 @@ class logmanager:
                 return
         elif category == self.unbanreasons:
             log = "An unban reason has been provided by " + context.author.name + " for unbanning of <@" + str(target.id) + "> ( " + str(target.id) + " ): " + reason + "."
+        elif category == self.temproles:
+            if mode == self.addrole:
+                log = "A temprole " + role.name + " has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+            else:
+                log = "A temprole " + role.name + " has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
         await self.uploadlog(log, context)
         return
     def ready(self):
