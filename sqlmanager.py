@@ -1,5 +1,7 @@
 import asyncio
 import aiomysql as sqlm
+import datetime
+
 class sqlmanager:
     def __init__(self, cfg):
         self.lock = asyncio.Lock()
@@ -62,6 +64,7 @@ class sqlmanager:
                 "`account_id` varchar(40) NOT NULL," +
                 "`issuer_id` varchar(40) NOT NULL DEFAULT '0'," +
                 "`expiration_date` DATETIME NOT NULL," +
+                "`issue_date` DATETIME NOT NULL DEFAULT '2025-01-01 00:00:00'," +
                 "`role_type` INT NOT NULL," +
                 "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
                 "`removed` BOOL NOT NULL DEFAULT 0," +
@@ -103,8 +106,8 @@ class sqlmanager:
         await self.query(query)
         if reason:
             query = (
-            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `role_type`, `reason`) VALUES (" +
-            str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', " + str(role_type) + ", %s" +
+            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `issue_date`, `role_type`, `reason`) VALUES (" +
+            str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', '" + datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S") + "', " + str(role_type) + ", %s" +
             ");"
             )
             await self.query(query, [reason])
@@ -156,16 +159,18 @@ class sqlmanager:
         return
         
     async def getwarnings(self, id):
-        query = "SELECT id, issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 10;"
+        query = "SELECT issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 10;"
         result = await self.query(query)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
         count = await self.query(query)
-        return count, result
+        return count[0][0], result
         
-    async def getfloodercount(self, id):
-        query = "SELECT COUNT(id) FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + ";"
+    async def getflooders(self, id):
+        query = "SELECT issuer_id, expiration_date, issue_date, reason FROM `temproles` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
         result = await self.query(query)
-        return int(result[0][0])
+        query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + ";"
+        count = await self.query(query)
+        return count[0][0], result
         
     async def isflooder(self, id):
         query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + " AND removed = 0 AND role_type = " + str(self.flooderrole) + ";"

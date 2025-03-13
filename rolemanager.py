@@ -51,12 +51,16 @@ class rolemanager:
         roleid = self.getroleid(role_type)
         guild = self.bot.get_guild(self.cfg.get("guild"))
         role = guild.get_role(roleid)
-        modreason = sanitizereason(context.author.name, reason = reason, addedrolename = role.name, duration = duration)
-        reason = isemptyreason(reason)
         maxduration = 14
         if role_type == self.gladiatorrole:
             maxduration = 365
         if mode == self.addtemprole:
+            modreason = sanitizereason(context.author.name, reason = reason, addedrolename = role.name, duration = duration)
+            reason = isemptyreason(reason)
+            if role_type == self.flooderrole:
+                if self.pm.hasrole(target, role.id):
+                    await self.pm.throwerror(context, "User has " + role.name + " role already!")
+                    return False, False, False, False
             date, timestamp = isvalidtime(duration, maxduration = maxduration)
             if not date:
                 await self.pm.throwerror(context, "Invalid time duration.")
@@ -68,6 +72,8 @@ class rolemanager:
             await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
             return role, timestamp, reason, True
         else:
+            modreason = sanitizereason(context.author.name, reason = reason, removedrolename = role.name, duration = duration)
+            reason = isemptyreason(reason)
             if not self.pm.hasrole(target, role.id):
                 await context.respond("User doesn't have " + role.name + " role!", ephemeral = True)
                 return False, False, False, False

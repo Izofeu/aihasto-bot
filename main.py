@@ -216,9 +216,29 @@ async def showflooders(context, member: discord.Member):
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
     if not canrun:
         return
-    floodercount = await sqlm.getfloodercount(member.id)
+    floodercount, flooders = await sqlm.getflooders(member.id)
     if floodercount > 0:
-        message = "<@" + str(member.id) + "> has received " + str(floodercount) + " flooders in last 30 days."
+        format = "%Y-%m-%d %H:%M:%S %z"
+        message = "<@" + str(member.id) + "> has received " + str(floodercount) + " flooders in last 30 days:"
+        for f in flooders:
+            dateexpiry = f[2]
+            # datetime object assumes timezone of the machine
+            # this part of code recreates the object with utc timezone
+            dateexpiry = str(dateexpiry)
+            dateexpiry += " +0000"
+            dateexpiry = datetime.datetime.strptime(dateexpiry, format)
+            timeexpiry = int(dateexpiry.timestamp())
+            
+            dateuntil = f[1]
+            # datetime object assumes timezone of the machine
+            # this part of code recreates the object with utc timezone
+            dateuntil = str(dateuntil)
+            dateuntil += " +0000"
+            dateuntil = datetime.datetime.strptime(dateuntil, format)
+            timeuntil = int(dateuntil.timestamp())
+            
+            message += "\nIssued <t:" + str(timeexpiry) + ":R> until: <t:" + str(timeuntil) + ":F> - <@" + str(f[0]) + "> - " + str(f[3])
+            message = message[:1999]
     else:
         message = "<@" + str(member.id) + "> has not received any flooders in last 30 days."
     await context.respond(message, ephemeral = True)
@@ -233,6 +253,38 @@ async def showwarnings(context, member: discord.Member):
     canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
     await cmdm.warn(context, target = member, showwarns = True)
     return
+    
+@bot.slash_command(description = "Adds Mr Mustard to a user for 24 hours.")
+@guild_only()
+async def addmustard(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to add a Mr Mustard role.")
+    ):
+         # Command permission level
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.temprole(context, target, rolem.addtemprole, rolem.mrmustardrole, duration = "24h")
+        return
+        
+@bot.slash_command(description = "Removes Mr Mustard from a user.")
+@guild_only()
+async def removemustard(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to remove a Mr Mustard role from.")
+    ):
+         # Command permission level
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.temprole(context, target, rolem.removetemprole, rolem.mrmustardrole)
+        return
     
 @bot.slash_command(description = "Adds Mita's Gladiators to a user.")
 @guild_only()

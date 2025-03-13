@@ -41,7 +41,7 @@ class cmdmanager:
             message = "You have been issued a " + role.name + " role by <@" + str(context.author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
         else:
             if success:
-                message = "You have been prematurely removed from a " + role.name + " role by <@" + str(context.author.id) + " for " + reason + "."
+                message = "You have been prematurely removed from a " + role.name + " role by <@" + str(context.author.id) + "> for " + reason + "."
             else:
                 return
         await target.send(message)

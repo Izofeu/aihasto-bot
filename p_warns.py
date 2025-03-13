@@ -59,7 +59,6 @@ class warns:
         
     async def getwarningmessage(self, member):
         warningscount, warnings = await self.sqlm.getwarnings(member.id)
-        warningscount = warningscount[0][0]
         if warningscount == 0:
             message = "<@" + str(member.id) + "> has not received any warnings."
         else:
@@ -68,14 +67,14 @@ class warns:
             #print(len(warnings))
             format = "%Y-%m-%d %H:%M:%S %z"
             for warns in warnings:
-                date = warns[2] - datetime.timedelta(days = 3)
+                date = warns[1] - datetime.timedelta(days = 3)
                 # datetime object assumes timezone of the machine
                 # this part of code recreates the object with utc timezone
                 date = str(date)
                 date += " +0000"
                 date = datetime.datetime.strptime(date, format)
                 time = int(date.timestamp())
-                message += "\n<t:" + str(time) + ":R> - <@" + str(warns[1]) + "> - " + str(warns[3])
+                message += "\n<t:" + str(time) + ":R> - <@" + str(warns[0]) + "> - " + str(warns[2])
                 message = message[:1999]
         return message
         
