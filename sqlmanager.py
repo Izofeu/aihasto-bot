@@ -10,6 +10,9 @@ class sqlmanager:
         self.dbname = self.cfg.get("dbname")
         self.dbport = self.cfg.get("dbport")
         self.dbpassword = ""
+        self.flooderrole = 1
+        self.gladiatorrole = 2
+        self.mrmustardrole = 3
         # Unused variable
         self.connected = False
         self.connection = None
@@ -21,7 +24,7 @@ class sqlmanager:
             self.dbpassword = file.read()
             file.close()
         except:
-            raise CannotOpenDbPasswordFile
+            raise Exception("Cannot open db password file.")
     # Connect / Disconnect from database
     async def condisconnect(self, mode):
         if mode == 1:
@@ -32,7 +35,7 @@ class sqlmanager:
                 self.connection = await sqlm.connect(host = self.dbaddress, user = self.dbuser, password = self.dbpassword, port = self.dbport, db = self.dbname, autocommit=True)
                 self.connected = True
             except:
-                print("Couldn't connect to database.")
+                raise Exception("Couldn't connect to database.")
         return
     async def query(self, query, params = False):
         async with self.lock:
@@ -40,17 +43,6 @@ class sqlmanager:
             cur = await self.connection.cursor()
             if self.firstRun:
                 # Run a create table if not exists query once
-                tablequery = (
-                "CREATE TABLE IF NOT EXISTS `flooders`" +
-                "(" +
-                "`id` INT NOT NULL AUTO_INCREMENT," +
-                "`account_id` varchar(40) NOT NULL," +
-                "`expiration_date` DATETIME NOT NULL," +
-                "`removed` BOOL NOT NULL DEFAULT 0," +
-                "PRIMARY KEY (id)" +
-                ");"
-                )
-                await cur.execute(tablequery)
                 tablequery = (
                 "CREATE TABLE IF NOT EXISTS `warns`" +
                 "(" +
@@ -63,15 +55,32 @@ class sqlmanager:
                 )
                 await cur.execute(tablequery)
                 tablequery = (
-                "CREATE TABLE IF NOT EXISTS `gladiators`" +
+                "CREATE TABLE IF NOT EXISTS `temproles`" +
                 "(" +
                 "`id` INT NOT NULL AUTO_INCREMENT," +
                 "`account_id` varchar(40) NOT NULL," +
                 "`expiration_date` DATETIME NOT NULL," +
+                "`role_type` INT NOT NULL," +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
+                "`removed` BOOL NOT NULL DEFAULT 0," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
                 await cur.execute(tablequery)
+                # Port database code goes here
+                if self.cfg.get("portdatabase") == 1:
+                    tablequery = "SELECT `account_id`, `expiration_date`, `removed` FROM `flooders`;"
+                    await cur.execute(tablequery)
+                    result = await cur.fetchall()
+                    for x in result:
+                        aid = str(x[0])
+                        date = str(x[1])
+                        removed = str(x[2])
+                        tablequery = "INSERT INTO `temproles` (`account_id`, `expiration_date`, `role_type`, `removed`) VALUES ('" + aid + "', '" + date + "', " + str(self.flooderrole) + ", " + removed + ");"
+                        await cur.execute(tablequery)
+                        #tablequery = "DELETE FROM `flooders`;"
+                        #await cur.execute(tablequery)
+                    self.cfg.set("portdatabase", 0)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -89,8 +98,8 @@ class sqlmanager:
     async def addflooder(self, id, duration):
         # Prepare the query for adding a flooder record
         query = (
-        "INSERT INTO `flooders` (`account_id`, `expiration_date`) VALUES (" +
-        str(id) + ", '" + str(duration) + "'"
+        "INSERT INTO `temproles` (`account_id`, `expiration_date`, `role_type`) VALUES (" +
+        str(id) + ", '" + str(duration) + "', " + str(self.flooderrole) +
         ");"
         )
         await self.query(query)
@@ -98,22 +107,22 @@ class sqlmanager:
         
     async def getexpiredflooders(self, currentdate):
         # Get all expired flooders
-        query = "SELECT account_id FROM flooders WHERE removed = 0 AND expiration_date < '" + currentdate + "';"
+        query = "SELECT `account_id` FROM `temproles` WHERE removed = 0 AND role_type = " + str(self.flooderrole) + " AND expiration_date < '" + currentdate + "';"
         result = await self.query(query)
         return result
         
     async def markflooderasremoved(self, id):
-        query = "UPDATE `flooders` SET removed = 1 WHERE account_id = " + str(id) + ";"
+        query = "UPDATE `temproles` SET removed = 1 WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + ";"
         await self.query(query)
         return
     
     async def removeflooder(self, id):
-        query = "DELETE FROM `flooders` WHERE account_id = " + str(id) + " AND removed = 0;"
+        query = "DELETE FROM `temproles` WHERE account_id = " + str(id) + " AND removed = 0 AND role_type = " + str(self.flooderrole) + ";"
         await self.query(query)
         return
         
     async def removeoldflooders(self):
-        query = "DELETE FROM `flooders` WHERE expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
+        query = "DELETE FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND expiration_date < DATE(NOW() - INTERVAL 30 DAY);"
         await self.query(query)
         return
         
@@ -141,12 +150,12 @@ class sqlmanager:
         return count, result
         
     async def getfloodercount(self, id):
-        query = "SELECT COUNT(id) FROM `flooders` WHERE account_id = " + str(id) + ";"
+        query = "SELECT COUNT(id) FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + ";"
         result = await self.query(query)
         return int(result[0][0])
         
     async def isflooder(self, id):
-        query = "SELECT COUNT(id) FROM `flooders` WHERE account_id = " + str(id) + " AND removed = 0;"
+        query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + " AND removed = 0 AND role_type = " + str(self.flooderrole) + ";"
         result = await self.query(query)
         return int(result[0][0])
         
@@ -157,18 +166,18 @@ class sqlmanager:
         
     async def addgladiator(self, id, date):
         await self.removegladiator(id)
-        query = "INSERT INTO `gladiators`(`account_id`, `expiration_date`) VALUES (" + str(id) + ", '" + str(date) + "');"
+        query = "INSERT INTO `temproles`(`account_id`, `expiration_date`, `role_type`) VALUES (" + str(id) + ", '" + str(date) + "', " + str(self.gladiatorrole) + ");"
         await self.query(query)
         return
         
     async def removegladiator(self, id = 0, date = False):
         if not date:
-            query = "DELETE FROM `gladiators` WHERE account_id = " + str(id) + ";"
+            query = "DELETE FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND account_id = " + str(id) + ";"
             await self.query(query)
             return
         else:
-            query = "SELECT account_id FROM `gladiators` WHERE expiration_date < '" + str(date) + "';"
+            query = "SELECT account_id FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND expiration_date < '" + str(date) + "';"
             returnquery = await self.query(query)
-            query = "DELETE FROM `gladiators` WHERE expiration_date < '" + str(date) + "';"
+            query = "DELETE FROM `temproles` WHERE role_type = " + str(self.gladiatorrole) + " AND expiration_date < '" + str(date) + "';"
             await self.query(query)
             return returnquery
