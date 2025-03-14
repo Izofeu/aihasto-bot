@@ -42,7 +42,10 @@ class cmdmanager:
             message = "You have been issued a " + role.name + " role by <@" + str(context.author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
         else:
             message = "You have been prematurely removed from a " + role.name + " role by <@" + str(context.author.id) + "> for " + reason + "."
-        await target.send(message)
+        try:
+            await target.send(message)
+        except:
+            pass
         return
         
     async def openfloodermenu(self, context, target):
