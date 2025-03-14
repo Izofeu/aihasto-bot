@@ -10,6 +10,7 @@ import sqlmanager
 import logmanager
 import commandmanager
 import rolemanager
+import c_ui
 
 messagecache = []
 recentunbans = []
@@ -208,6 +209,12 @@ async def checktemproles():
     await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
+@bot.message_command(name = "Warn for this message")
+@guild_only()
+async def autowarn(context, message: discord.Message):
+    # message.author returns user instead of member
+    await context.respond("This functionality is not implemented yet.", ephemeral = True)
+
 @bot.user_command(name = "Issue flooder")
 @guild_only()
 async def floodermenu(context, member: discord.Member):
@@ -250,9 +257,12 @@ async def showflooders(context, member: discord.Member):
             
             message += "\nIssued <t:" + str(timeexpiry) + ":R> until: <t:" + str(timeuntil) + ":F> - <@" + str(f[0]) + "> - " + str(f[3])
             message = message[:1999]
+        
     else:
         message = "<@" + str(member.id) + "> has not received any flooders in last 30 days."
-    await context.respond(message, ephemeral = True)
+    view = c_ui.issueflooderbutton(pm, context = context, target = member, flooderui = c_ui.flooderui, rolem = rolem, temprole = cmdm.temprole)
+    messagehook = await context.respond(message, view = view, ephemeral = True)
+    view.setwebhook(messagehook)
     return
     
 @bot.user_command(name = "Show warnings")

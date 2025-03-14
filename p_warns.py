@@ -1,6 +1,7 @@
 from extrafunctions import isemptyreason, isvalidtime
 import datetime
 import discord
+import c_ui
 
 class warns:
     def __init__(self, cfg, bot, permmanager, log, sql):
@@ -10,36 +11,21 @@ class warns:
         self.logm = log
         self.sqlm = sql
     
-    async def addwarn(self, context, target, reason):
+    async def addwarn(self, context, target, reason, interaction = False):
         expirydate = isvalidtime("3d")[0].strftime("%Y-%m-%d %H:%M:%S")
         warncount = await self.sqlm.getwarncount(target.id)
         message = "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + "."
-        if warncount > 0:
+        if warncount > 0 and not interaction:
             message += " They have " + str(warncount) + " other warning(s) on account."
-            class showwarnsbutton(discord.ui.View):
-                @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)
-                async def button_callback(self, button, interaction):
-                    # Command permission level
-                    commandpermissionlevel = 1
-                    # Permission check
-                    canrun = await self.pm.canrun(context = interaction, member = interaction.user, commandpermissionlevel = commandpermissionlevel, interaction = True)
-                    if not canrun:
-                        return
-                    await interaction.response.send_message(await self.getwarningmessage(target), ephemeral = True)
-                def __init__(self, pm, getwarningmessage):
-                    # Run init function of discord.ui.View before initializing our variables
-                    super().__init__()
-                    self.pm = pm
-                    self.getwarningmessage = getwarningmessage
-        else:
+        elif not interaction:
             message += " This is their first warning."
         modreason = isemptyreason(reason)
         await self.sqlm.addwarning(context.author.id, target.id, expirydate, modreason)
-        if warncount > 0:
+        if warncount > 0 and not interaction:
             # Delete the message after 1 minute to prevent a memory leak with too many buttons
-            await context.respond(message, view = showwarnsbutton(self.pm, self.getwarningmessage), ephemeral = True, delete_after = 120)
+            await context.respond(message, view = c_ui.showwarnsbutton(self.pm, self.getwarningmessage, target), ephemeral = True, delete_after = 120)
         else:
-            await context.respond(message, ephemeral = True)
+            await self.pm.respond(context, message, interaction = interaction, ephemeral = True)
         
         await self.logm.sendlog(self.logm.warns, context, mode = self.logm.addwarn, target = target, reason = isemptyreason(reason))
         try:
@@ -80,5 +66,9 @@ class warns:
         
     async def showwarnings(self, context, member):
         message = await self.getwarningmessage(member)
-        await context.respond(message, ephemeral = True)
+        
+        warnui = c_ui.warnui
+        view = c_ui.issuewarnbutton(self.pm, warnui, context, member, addwarn = self.addwarn)
+        x = await context.respond(message, view = view, ephemeral = True, delete_after = 120)
+        view.setwebhook(x)
         return

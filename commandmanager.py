@@ -2,6 +2,7 @@ import p_timeouts
 import p_warns
 import g_slowmodes
 import discord
+import c_ui
 
 class cmdmanager:
     def __init__(self, cfg, bot, pm, sql, rolemanager, log):
@@ -49,22 +50,6 @@ class cmdmanager:
         return
         
     async def openfloodermenu(self, context, target):
-        class flooderui(discord.ui.Modal):
-            def __init__(self, context, target, rolem, temprole, title = "Issue flooder role"):
-                super().__init__(title = title)
-                self.add_item(discord.ui.InputText(label = "Duration", required = True, placeholder = "2d, 48h, etc.", max_length = 5, value = "2d"))
-                self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
-                self.target = target
-                self.context = context
-                self.rolem = rolem
-                self.temprole = temprole
-                
-            async def callback(self, interaction: discord.Interaction):
-                duration = self.children[0].value
-                reason = self.children[1].value
-                await self.temprole(self.context, self.target, mode = self.rolem.addtemprole, roletype = self.rolem.flooderrole, duration = duration, reason = reason, interaction = interaction)
-                #await interaction.response.send_message(message, ephemeral = True)
-                return
-        flooderui = flooderui(context, target, self.rolem, self.temprole)
+        flooderui = c_ui.flooderui(context, target, self.rolem, self.temprole)
         await context.send_modal(flooderui)
         return

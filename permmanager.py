@@ -13,29 +13,29 @@ class permmanager:
         # If a command affects another user, ensure that the user is below us
         # in the role hierarchy. This also prevents self removal of roles
         # because we are always equal in the role hierarchy.
-        try:
-            # If permission level isn't set by us, return false
-            if commandpermissionlevel == -1:
-                raise PermissionException
-            # Check permission level of the user who ran the command
-            inituser_permissionlevel = self.getpermissionlevel(member)
-            if inituser_permissionlevel < commandpermissionlevel:
-                if interaction and not target:
-                    await self.throwerrorinteraction(context, "You do not have enough permissions to run this command.")
-                else:
-                    await self.throwerror(context, "You do not have enough permissions to run this command.")
-                return False
-            # If a command affects another user, perform a hierarchy check
-            if target:
-                if target.bot:
-                    await self.throwerror(context, "The target mustn't be a bot.")
-                    return False
-                targetuser_permissionlevel = self.getpermissionlevel(target)
-                if targetuser_permissionlevel >= inituser_permissionlevel:
-                    await self.throwerror(context, "The target user needs to be lower than your highest role.")
-                    return False
-        except:
+        #try:
+        # If permission level isn't set by us, return false
+        if commandpermissionlevel == -1:
+            raise PermissionException
+        # Check permission level of the user who ran the command
+        inituser_permissionlevel = self.getpermissionlevel(member)
+        if inituser_permissionlevel < commandpermissionlevel:
+            if interaction:
+                await self.throwerrorinteraction(context, "You do not have enough permissions to run this command.")
+            else:
+                await self.throwerror(context, "You do not have enough permissions to run this command.")
             return False
+        # If a command affects another user, perform a hierarchy check
+        if target:
+            if target.bot:
+                await self.throwerror(context, "The target mustn't be a bot.")
+                return False
+            targetuser_permissionlevel = self.getpermissionlevel(target)
+            if targetuser_permissionlevel >= inituser_permissionlevel:
+                await self.throwerror(context, "The target user needs to be lower than your highest role.")
+                return False
+        #except:
+        return False
         return True
         
     def getpermissionlevel(self, member):
