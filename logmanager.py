@@ -81,3 +81,21 @@ class logmanager:
         if self.logchannel == None:
             raise Exception("No log channel defined.")
         return
+        
+    async def parseauditlogentry(self, logentry, recentunbans, recenttimeouts):
+        print("got here2")
+        mod = logentry.user
+        target = logentry.target
+        if mod.bot:
+            print("got here3")
+            return
+        if log.action.unban:
+            print("got here4")
+            try:
+                recentunbans.index(target.id)
+                return
+            except:
+                await self.sendlog(self.unbans, context = mod.name, target = target.id, mode = self.noreason, reason = isemptyreason(""))
+        elif log.action.member_update:
+            print("Changes: " + str(log.changes))
+        return

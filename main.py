@@ -14,6 +14,7 @@ import c_ui
 
 messagecache = []
 recentunbans = []
+recenttimeouts = []
 
 # Load up config
 intents = discord.Intents.default()
@@ -33,6 +34,7 @@ intents.polls = False
 intents.dm_reactions = False
 intents.members = True
 intents.moderation = True
+intents.guilds = True
 
 nocachemembers = discord.MemberCacheFlags.none()
 
@@ -102,17 +104,9 @@ def isvalidtime(time, maxduration = 14):
     return False
     
 @bot.event
-async def on_member_unban(guild, user):
-    mod = False
-    async for action in guild.audit_logs(limit = 1, action = discord.AuditLogAction.unban):
-        mod = action.user
-    if not mod:
-        return
-    try:
-        recentunbans.index(user.id)
-        return
-    except:
-        await logm.sendlog(logm.unbans, context = mod.name, target = user.id, mode = logm.noreason, reason = isemptyreason(""))
+async def on_audit_log_entry(entry):
+    print("got here1")
+    await logm.parseauditlogentry(entry, recentunbans, recenttimeouts)
     return
         
 @bot.event
