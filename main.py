@@ -575,7 +575,27 @@ async def timeout(context, target: discord.Option(
         await cmdm.timeout(context, target, duration, reason, isslash = True)
         return
         
-
+@bot.slash_command(description = "Removes a user from a time-out with a reason.")
+@guild_only()
+async def untimeout(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to issue a time-out to."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for the timeout.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        await context.defer(ephemeral = True)
+        await cmdm.timeout(context, target, duration = False, reason = reason, isslash = True, untimeout = True)
+        return
+        
 @bot.slash_command(description = "Toggles Puppet role for a user.")
 @guild_only()
 async def puppet(context, target: discord.Option(

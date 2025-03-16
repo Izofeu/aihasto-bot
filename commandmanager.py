@@ -18,8 +18,8 @@ class cmdmanager:
         self.warns = p_warns.warns(cfg, bot, pm, log, sql)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
-    async def timeout(self, context, target, duration, reason, isslash):
-        await self.timeouts.issuetimeout(context, target, duration, reason, isslash)
+    async def timeout(self, context, target, duration, reason, isslash, untimeout = False):
+        await self.timeouts.issuetimeout(context, target, duration, reason, isslash, untimeout)
         return
         
     async def setslowmode(self, context, target, delay):

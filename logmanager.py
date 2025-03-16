@@ -20,6 +20,8 @@ class logmanager:
         self.unbans = 7
         self.unbanreasons = 8
         self.temproles = 9
+        self.bans = 10
+        self.kicks = 11
         
         self.addrole = 1
         self.removerole = 2
@@ -27,6 +29,8 @@ class logmanager:
         self.addwarn = 1
         self.clearwarns = 2
         self.noreason = 3
+        
+        self.removetimeout = 2
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
@@ -46,6 +50,8 @@ class logmanager:
         if category == self.timeouts:
             if mode == self.selfissuedwarn:
                 log = "A timeout has been issued to <@" + str(target) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+            elif mode == self.removetimeout:
+                log = "A timeout has been prematurely removed from <@" + str(target) + "> by " + context.name + " for " + reason + "."
             else:
                 log = "A timeout has been issued to <@" + str(target) + "> by " + context.name + " until <t:" + str(duration) + ":F> for " + reason + "."
         elif category == self.roles:
@@ -78,6 +84,10 @@ class logmanager:
                 log = "A temprole " + role.name + " has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
             else:
                 log = "A temprole " + role.name + " has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
+        elif category == self.bans:
+            log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
+        elif category == self.kicks:
+            log = "A kick has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
         await self.uploadlog(log, context)
         return
     def ready(self):
@@ -99,9 +109,9 @@ class logmanager:
         loggableactions = [kick, ban, unban, member_update]
         type = logentry.action_type
         if type not in loggableactions:
-            print("Action: " + str(logentry.action) + " not in " + str(loggableactions))
+            #print("Action: " + str(logentry.action) + " not in " + str(loggableactions))
             return
-        print("code continue")
+        #print("code continue")
         mod = self.guild.get_member(modid)
         if mod is None:
             try:
@@ -118,16 +128,14 @@ class logmanager:
                 await self.sendlog(self.unbans, context = mod.name, target = targetid, mode = self.noreason, reason = isemptyreason(""))
         elif type == member_update:
             for x in logentry.changes:
-                print(x)
                 if x.get("key") == "communication_disabled_until":
                     if x.get("new_value"):
-                        print("issued timeout")
                         date, timestamp = discorddatetodateobject(x.get("new_value"))
                         await self.sendlog(self.timeouts, context = mod, target = targetid, duration = timestamp, reason = isemptyreason(logentry.reason))
                     else:
-                        print("removed timeout")
+                        await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == ban:
-            print("ban")
+            await self.sendlog(self.bans, context = mod, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == kick:
-            print("kick")
+            await self.sendlog(self.kicks, context = mod, target = targetid, reason = isemptyreason(logentry.reason))
         return

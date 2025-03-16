@@ -6,8 +6,19 @@ class timeouts:
         self.bot = bot
         self.pm = permmanager
         self.logm = log
-    async def issuetimeout(self, context, target, duration, reason, isslash):
-        if isslash:
+    async def issuetimeout(self, context, target, duration, reason, isslash, untimeout):
+        if untimeout:
+            try:
+                # Issue timeout
+                modreason = sanitizereason(context.author.name, reason = reason, duration = duration)
+                if not target.timed_out:
+                    raise Exception("User is not timed out.")
+                await target.timeout(until = None, reason = modreason)
+                await context.respond("User <@" + str(target.id) + "> has had their time-out removed for " + isemptyreason(reason) + ".", ephemeral = True)
+                await self.logm.sendlog(self.logm.timeouts, context.author, mode = self.logm.removetimeout, target = target.id, reason = isemptyreason(reason))
+            except:
+                await context.respond("Error removing a timeout. User probably isn't timed out.", ephemeral = True)
+        elif isslash:
             time, untiltimestamp = isvalidtime(duration)
             if not time:
                 await self.pm.throwerror(context, "Invalid timeout duration.")
