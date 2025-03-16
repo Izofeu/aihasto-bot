@@ -38,7 +38,7 @@ intents.guilds = True
 
 nocachemembers = discord.MemberCacheFlags.none()
 
-bot = discord.Bot(intents = intents, member_cache_flags = nocachemembers, chunk_guilds_at_startup = False)
+bot = discord.Bot(intents = intents, chunk_guilds_at_startup = False)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
@@ -104,9 +104,8 @@ def isvalidtime(time, maxduration = 14):
     return False
     
 @bot.event
-async def on_audit_log_entry(entry):
-    print("got here1")
-    await logm.parseauditlogentry(entry, recentunbans, recenttimeouts)
+async def on_raw_audit_log_entry(entry):
+    await logm.parserawauditlogentry(entry, recentunbans, recenttimeouts)
     return
         
 @bot.event
@@ -132,7 +131,7 @@ async def on_message_edit(before, after):
         if permlevel == 0:
             reason = "Edited a message in miside-great-mita."
             await after.author.timeout(time, reason = reason)
-            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author, duration = untiltimestamp, reason = reason)
+            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author.id, duration = untiltimestamp, reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
     elif after.channel.id == cfg.get("gifpartyid"):
         if before.content == after.content:
@@ -411,8 +410,8 @@ async def unban(context, target: discord.Option(
             await context.author.guild.unban(target, reason = modreason)
             await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
             await logm.sendlog(logm.unbans, context = context, target = target.id, reason = isemptyreason(reason))
-            sec5 = datetime.datetime.now() + datetime.timedelta(seconds = 5)
-            await discord.utils.sleep_until(sec5)
+            sec10 = datetime.datetime.now() + datetime.timedelta(seconds = 10)
+            await discord.utils.sleep_until(sec10)
             try:
                 recentunbans.remove(target.id)
             except:

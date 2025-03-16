@@ -50,3 +50,12 @@ def sanitizereason(author, reason = False, addedrolename = False, removedrolenam
         finalreason = finalreason + ", Reason: " + reason
     finalreason = finalreason[:511]
     return finalreason
+    
+def discorddatetodateobject(date):
+    date_date = date[:10]
+    date_time = date[11:19]
+    date = date_date + " " + date_time + " +0000"
+    format = "%Y-%m-%d %H:%M:%S %z"
+    date = datetime.datetime.strptime(date, format)
+    timestamp = int(date.timestamp())
+    return date, timestamp

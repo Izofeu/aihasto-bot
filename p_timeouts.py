@@ -10,7 +10,7 @@ class timeouts:
         if isslash:
             time, untiltimestamp = isvalidtime(duration)
             if not time:
-                await self.pm.throwerror(context, "Invalid flooder duration.")
+                await self.pm.throwerror(context, "Invalid timeout duration.")
                 return
             try:
                 # Issue timeout
@@ -21,7 +21,7 @@ class timeouts:
                 except:
                     pass
                 await context.respond("User <@" + str(target.id) + "> has been timed out for " + duration + ".", ephemeral = True)
-                await self.logm.sendlog(self.logm.timeouts, context, target = target, duration = untiltimestamp, reason = isemptyreason(reason))
+                await self.logm.sendlog(self.logm.timeouts, context.author, target = target.id, duration = untiltimestamp, reason = isemptyreason(reason))
             except:
                 await context.respond("Error issuing a timeout. Check bot permissions.", ephemeral = True)
             return

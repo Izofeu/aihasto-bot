@@ -1,7 +1,12 @@
+from extrafunctions import discorddatetodateobject, isemptyreason
+
+import discord
+
 class logmanager:
     def __init__(self, cfg, bot):
         self.cfg = cfg
         self.bot = bot
+        self.guild = ""
         self.logchannelid = ""
         self.logchannel = ""
         self.loadlogchannelid()
@@ -40,9 +45,9 @@ class logmanager:
         log = "No appropriate log category has been found."
         if category == self.timeouts:
             if mode == self.selfissuedwarn:
-                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+                log = "A timeout has been issued to <@" + str(target) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
             else:
-                log = "A timeout has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+                log = "A timeout has been issued to <@" + str(target) + "> by " + context.name + " until <t:" + str(duration) + ":F> for " + reason + "."
         elif category == self.roles:
             if mode == self.addrole:
                 if role.id == self.cfg.get("gladiatorid"):
@@ -76,26 +81,53 @@ class logmanager:
         await self.uploadlog(log, context)
         return
     def ready(self):
-        guild = self.bot.get_guild(self.cfg.get("guild"))
-        self.logchannel = guild.get_channel(self.logchannelid)
+        self.guild = self.bot.get_guild(self.cfg.get("guild"))
+        self.logchannel = self.guild.get_channel(self.logchannelid)
         if self.logchannel == None:
             raise Exception("No log channel defined.")
         return
         
-    async def parseauditlogentry(self, logentry, recentunbans, recenttimeouts):
-        print("got here2")
-        mod = logentry.user
-        target = logentry.target
-        if mod.bot:
-            print("got here3")
+    async def parserawauditlogentry(self, logentry, recentunbans, recenttimeouts):
+        modid = logentry.user_id
+        targetid = logentry.target_id
+        
+        kick = discord.AuditLogAction.kick
+        ban = discord.AuditLogAction.ban
+        unban = discord.AuditLogAction.unban
+        member_update = discord.AuditLogAction.member_update
+        
+        loggableactions = [kick, ban, unban, member_update]
+        type = logentry.action_type
+        if type not in loggableactions:
+            print("Action: " + str(logentry.action) + " not in " + str(loggableactions))
             return
-        if log.action.unban:
-            print("got here4")
+        print("code continue")
+        mod = self.guild.get_member(modid)
+        if mod is None:
+            try:
+                mod = await self.guild.fetch_member(modid)
+            except:
+                return
+        if mod.bot:
+            return
+        if type == unban:
             try:
                 recentunbans.index(target.id)
                 return
             except:
                 await self.sendlog(self.unbans, context = mod.name, target = target.id, mode = self.noreason, reason = isemptyreason(""))
-        elif log.action.member_update:
-            print("Changes: " + str(log.changes))
+        elif type == member_update:
+            for x in logentry.changes:
+                print(x)
+                if x.get("key") == "communication_disabled_until":
+                    if x.get("new_value"):
+                        print("issued timeout")
+                        date, timestamp = discorddatetodateobject(x.get("new_value"))
+                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = timestamp, reason = isemptyreason(logentry.reason))
+                    else:
+                        print("removed timeout")
+        elif type == ban:
+            print("ban")
+        elif type == kick:
+            print("kick")
         return
