@@ -68,7 +68,7 @@ class logmanager:
             if mode == self.noreason:
                 log = "Caution! "
             try:
-                log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context.author.name + " for " + reason + "."
+                log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context + " for " + reason + "."
             except:
                 return
         elif category == self.unbanreasons:
@@ -115,7 +115,7 @@ class logmanager:
                 recentunbans.index(target.id)
                 return
             except:
-                await self.sendlog(self.unbans, context = mod.name, target = target.id, mode = self.noreason, reason = isemptyreason(""))
+                await self.sendlog(self.unbans, context = mod.name, target = targetid, mode = self.noreason, reason = isemptyreason(""))
         elif type == member_update:
             for x in logentry.changes:
                 print(x)

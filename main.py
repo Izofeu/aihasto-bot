@@ -409,7 +409,7 @@ async def unban(context, target: discord.Option(
             recentunbans.append(target.id)
             await context.author.guild.unban(target, reason = modreason)
             await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
-            await logm.sendlog(logm.unbans, context = context, target = target.id, reason = isemptyreason(reason))
+            await logm.sendlog(logm.unbans, context = context.author.name, target = target.id, reason = isemptyreason(reason))
             sec10 = datetime.datetime.now() + datetime.timedelta(seconds = 10)
             await discord.utils.sleep_until(sec10)
             try:
