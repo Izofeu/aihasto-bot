@@ -37,7 +37,7 @@ class rolemanager:
             try:
                 role, member = await self.fetchroleandmember(toremove[1], toremove[0])
             except:
-                print("Error getting role/member")
+                print("Error getting member for temprole removal (or role but that's unlikely). They've likely left the server.")
                 continue
             reason = "Expired " + role.name + " role."
             try:

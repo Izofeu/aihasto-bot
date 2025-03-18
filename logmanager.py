@@ -39,12 +39,13 @@ class logmanager:
         return
     async def uploadlog(self, content, context):
         try:
-            await self.logchannel.send(content)
+            message = await self.logchannel.send(content)
         except:
             if not context:
-                return
+                return None
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
-        return
+            return None
+        return message
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
         log = "No appropriate log category has been found."
         if category == self.timeouts:
@@ -75,6 +76,13 @@ class logmanager:
                 log = "Caution! "
             try:
                 log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context + " for " + reason + "."
+                logmessage = await self.uploadlog(log, context)
+                if logmessage is None:
+                    return
+                id = logmessage.id
+                message = log + "\nRun `/addunbanreason " + str(id) + " reason` to add an unban reason."
+                await logmessage.edit(content = message)
+                return
             except:
                 return
         elif category == self.unbanreasons:

@@ -1,3 +1,4 @@
+from extrafunctions import isemptyreason
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -52,4 +53,26 @@ class cmdmanager:
     async def openfloodermenu(self, context, target):
         flooderui = c_ui.flooderui(context, target, self.rolem, self.temprole)
         await context.send_modal(flooderui)
+        return
+        
+    async def addunbanreason(self, context, id, reason):
+        guild = self.bot.get_guild(self.cfg.get("guild"))
+        channel = guild.get_channel(self.cfg.get("logchannelid"))
+        try:
+            id = str(id).strip()
+            message = await channel.fetch_message(int(id))
+            if not message.content.startswith("Caution! ") or not message.author.bot:
+                await self.pm.throwerror(context, "The following message has an unban reason already or it is not a valid message!")
+                return
+            editmessage = message.content[9:]
+            editmessage = editmessage.split("\n", 1)
+            editmessage = editmessage[0]
+            editmessage += "\nUser <@" + str(context.author.id) + "> has added an unban reason: "
+            editmessage += isemptyreason(reason)
+            await message.edit(content = editmessage)
+            await context.respond("Successfully edited the unban message: https://discord.com/channels/" + str(self.cfg.get("guild")) + "/" + str(channel.id) + "/" + str(message.id), ephemeral = True)
+        except Exception as e:
+            #print(e)
+            await self.pm.throwerror(context, "Couldn't fetch the unban message!")
+            return
         return

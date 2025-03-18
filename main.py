@@ -360,11 +360,11 @@ async def removegladiator(context, target: discord.Option(
 
 @bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
 @guild_only()
-@commands.cooldown(1, 60, commands.BucketType.default)
-async def addunbanreason(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
+@commands.cooldown(1, 10, commands.BucketType.default)
+async def addunbanreason(context, id: discord.Option(
+    discord.SlashCommandOptionType.string,
     required = True,
-    description = "ID of a user to add an unban reason to."),
+    description = "ID of an unban message."),
     reason: discord.Option(
     discord.SlashCommandOptionType.string,
     required = True,
@@ -376,14 +376,16 @@ async def addunbanreason(context, target: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        await context.defer(ephemeral = True)
-        await logm.sendlog(logm.unbanreasons, context = context, target = target, reason = isemptyreason(reason))
-        await context.respond("Successfully added an unban reason of <@" + str(target.id) + "> (" + str(target.id) + ") to log channel.")
+        #await context.defer(ephemeral = True)
+        await cmdm.addunbanreason(context, id, reason)
+        
+        #await logm.sendlog(logm.unbanreasons, context = context, target = target, reason = isemptyreason(reason))
+        #await context.respond("Successfully added an unban reason of <@" + str(target.id) + "> (" + str(target.id) + ") to log channel.")
         return
         
 @addunbanreason.error
 async def cooldown_error(context, error):
-    await pm.throwerror(context, "This command has a global cooldown of 1 minute.")
+    await pm.throwerror(context, "This command has a global cooldown of 10 seconds.")
     return
 
 @bot.slash_command(description = "Unbans a user with a reason.")
