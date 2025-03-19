@@ -1,4 +1,4 @@
-from extrafunctions import discorddatetodateobject, isemptyreason
+from extrafunctions import discorddatetodateobject, isemptyreason, getutctimestamp
 
 import discord
 
@@ -20,7 +20,7 @@ class logmanager:
         self.selfissuedwarn = 5
         self.slowmodes = 6
         self.unbans = 7
-        self.unbanreasons = 8
+        self.unbanreasons = 8 # obsolete
         self.temproles = 9
         self.bans = 10
         self.kicks = 11
@@ -49,64 +49,100 @@ class logmanager:
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
             return None
         return message
-    async def uploadembed(self, embed):
+    async def uploadembed(self, embed, ismessagelog = False):
         try:
-            await self.messagelogchannel.send(embed = embed)
+            embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
+            if ismessagelog:
+                await self.messagelogchannel.send(embed = embed)
+            else:
+                await self.logchannel.send(embed = embed)
         except:
             pass
         return
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
-        log = "No appropriate log category has been found."
         embed = discord.Embed()
         if category == self.timeouts:
+            embed.title = "Timeout add"
+            embed.description = reason
+            embed.color = discord.Colour.purple()
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             if mode == self.selfissuedwarn:
-                log = "A timeout has been issued to <@" + str(target) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+                embed.add_field(name = "Issuer", value = "<@" + str(context.user.id) + ">", inline = False)
+                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
             elif mode == self.removetimeout:
-                log = "A timeout has been prematurely removed from <@" + str(target) + "> by " + context.name + " for " + reason + "."
+                embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+                embed.title = "Timeout remove"
             else:
-                log = "A timeout has been issued to <@" + str(target) + "> by " + context.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+                embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
         elif category == self.roles:
+            embed.description = "Role: <@&" + str(role.id) + ">"
+            embed.color = discord.Colour.magenta()
             if mode == self.addrole:
-                if role.id == self.cfg.get("gladiatorid"):
-                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F>."
-                else:
-                    log = "A role " + role.name + " has been assigned to <@" + str(target.id) + "> by " + context.author.name + "."
+                embed.title = "Role added"
             else:
-                log = "A role " + role.name + " has been removed from <@" + str(target.id) + "> by " + context.author.name + "."
+                embed.title = "Role removed"
+            embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
         elif category == self.warns:
+            embed.color = discord.Colour.dark_gray()
+            embed.description = reason
+            embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
             if mode == self.addwarn:
-                log = "A warning has been issued to <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
+                embed.title = "Warn"
             else:
-                log = context.author.name + " has cleared all warnings for <@" + str(target.id) + "> for " + reason + "."
+                embed.title = "Clear all warns"
         elif category == self.slowmodes:
-            log = "Slowmode for channel <#" + str(channelid) + "> has been set to " + str(duration) + " seconds by " + context.author.name + "."
+            embed.color = discord.Colour.teal()
+            embed.title = "Slowmode"
+            embed.add_field(name = "Target", value = "<#" + str(channelid) + ">", inline = False)
+            embed.add_field(name = "Delay", value = str(duration) + " seconds", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
         elif category == self.unbans:
-            log = ""
-            if mode == self.noreason:
-                log = "Caution! "
-            try:
-                log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context + " for " + reason + "."
-                logmessage = await self.uploadlog(log, context)
-                if logmessage is None:
-                    return
-                id = logmessage.id
-                message = log + "\nRun `/addunbanreason " + str(id) + " reason` to add an unban reason."
-                await logmessage.edit(content = message)
-                return
-            except:
-                return
-        elif category == self.unbanreasons:
-            log = "An unban reason has been provided by " + context.author.name + " for unbanning of <@" + str(target.id) + "> ( " + str(target.id) + " ): " + reason + "."
+            embed.title = "Unban"
+            embed.description = reason
+            embed.color = discord.Colour.green()
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            #log = ""
+            #if mode == self.noreason:
+                #log = "Caution! "
+            #try:
+            #    log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context + " for " + reason + "."
+            #    logmessage = await self.uploadlog(log, context)
+                #if logmessage is None:
+                #    return
+                #id = logmessage.id
+                #message = log + "\nRun `/addunbanreason " + str(id) + " reason` to add an unban reason."
+                #await logmessage.edit(content = message)
+            #    return
+            #except:
+            #    return
         elif category == self.temproles:
+            embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
+            embed.color = discord.Colour.dark_blue()
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
             if mode == self.addrole:
-                log = "A temprole " + role.name + " has been issued to <@" + str(target.id) + "> by " + context.author.name + " until <t:" + str(duration) + ":F> for " + reason + "."
+                embed.title = "Add temprole"
+                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
             else:
-                log = "A temprole " + role.name + " has been prematurely removed from <@" + str(target.id) + "> by " + context.author.name + " for " + reason + "."
+                embed.title = "Remove temprole"
         elif category == self.bans:
-            log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
+            embed.title = "Ban"
+            embed.description = reason
+            embed.color = discord.Colour.dark_red()
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            #log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
         elif category == self.kicks:
-            log = "A kick has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
-        await self.uploadlog(log, context)
+            embed.title = "Kick"
+            embed.description = reason
+            embed.color = discord.Colour.yellow()
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+        await self.uploadembed(embed)
         return
     def ready(self):
         self.guild = self.bot.get_guild(self.cfg.get("guild"))
@@ -144,7 +180,7 @@ class logmanager:
                 recentunbans.index(target.id)
                 return
             except:
-                await self.sendlog(self.unbans, context = mod.name, target = targetid, mode = self.noreason, reason = isemptyreason(""))
+                await self.sendlog(self.unbans, context = mod, target = targetid, mode = self.noreason, reason = isemptyreason(""))
         elif type == member_update:
             for x in logentry.changes:
                 if x.get("key") == "communication_disabled_until":

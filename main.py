@@ -119,11 +119,13 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message_edit(before, after):
-    if not cfg.get("automessagecuration"):
-        return
     if before.author.bot:
         return
+    if pm.getpermissionlevel(before.author) == 4:
+        return
     if after.channel.id == cfg.get("greatmitaid"):
+        if not cfg.get("automessagecuration"):
+            return
         try:
             await after.delete(reason = "Edited a message in miside-great-mita.")
         except:
@@ -137,6 +139,8 @@ async def on_message_edit(before, after):
             await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author.id, duration = untiltimestamp, reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
     elif after.channel.id == cfg.get("gifpartyid"):
+        if not cfg.get("automessagecuration"):
+            return
         if before.content == after.content:
             try:
                 messagecache.remove(str(after.id))
@@ -161,13 +165,15 @@ async def on_message_edit(before, after):
             attachmentlinks += x.proxy_url + "\n"
         if attachmentlinks:
             embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
-        embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
-        await logm.uploadembed(embed)
+        #embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
+        await logm.uploadembed(embed, ismessagelog = True)
     return
     
 @bot.event
 async def on_message_delete(message):
     if message.author.bot:
+        return
+    if pm.getpermissionlevel(message.author) == 4:
         return
     embed = discord.Embed()
     embed.title = "Message deleted"
@@ -179,8 +185,8 @@ async def on_message_delete(message):
         attachmentlinks += x.proxy_url + "\n"
     if attachmentlinks:
         embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
-    embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
-    await logm.uploadembed(embed)
+    #embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
+    await logm.uploadembed(embed, ismessagelog = True)
     return
     
 @bot.event
@@ -413,6 +419,8 @@ async def addunbanreason(context, id: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
+        await context.respond("This command is temporarily disabled.", ephemeral = True)
+        return
         #await context.defer(ephemeral = True)
         await cmdm.addunbanreason(context, id, reason)
         
@@ -448,7 +456,7 @@ async def unban(context, target: discord.Option(
             recentunbans.append(target.id)
             await context.author.guild.unban(target, reason = modreason)
             await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
-            await logm.sendlog(logm.unbans, context = context.author.name, target = target.id, reason = isemptyreason(reason))
+            await logm.sendlog(logm.unbans, context = context.author, target = target.id, reason = isemptyreason(reason))
             sec10 = datetime.datetime.now() + datetime.timedelta(seconds = 10)
             await discord.utils.sleep_until(sec10)
             try:
