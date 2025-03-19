@@ -122,7 +122,7 @@ class logmanager:
         elif category == self.temproles:
             embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.dark_blue()
-            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
             if mode == self.addrole:
                 embed.title = "Add temprole"
