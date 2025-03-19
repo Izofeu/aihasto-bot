@@ -59,3 +59,6 @@ def discorddatetodateobject(date):
     date = datetime.datetime.strptime(date, format)
     timestamp = int(date.timestamp())
     return date, timestamp
+    
+def getutctimestamp():
+    return str(int(datetime.datetime.now(datetime.UTC).timestamp()))

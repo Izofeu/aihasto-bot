@@ -11,6 +11,7 @@ import logmanager
 import commandmanager
 import rolemanager
 import c_ui
+from extrafunctions import getutctimestamp
 
 messagecache = []
 recentunbans = []
@@ -38,7 +39,7 @@ intents.guilds = True
 
 nocachemembers = discord.MemberCacheFlags.none()
 
-bot = discord.Bot(intents = intents, chunk_guilds_at_startup = False)
+bot = discord.Bot(intents = intents, chunk_guilds_at_startup = False, max_messages = 10000)
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
@@ -120,6 +121,8 @@ async def on_member_join(member):
 async def on_message_edit(before, after):
     if not cfg.get("automessagecuration"):
         return
+    if before.author.bot:
+        return
     if after.channel.id == cfg.get("greatmitaid"):
         try:
             await after.delete(reason = "Edited a message in miside-great-mita.")
@@ -144,6 +147,40 @@ async def on_message_edit(before, after):
             await after.delete(reason = "Edited a message in gif-party.")
         except:
             pass
+    elif before.content == after.content and before.attachments == after.attachments:
+        return
+    else:
+        embed = discord.Embed()
+        embed.title="Message edited"
+        embed.color = discord.Colour.orange()
+        embed.description = "Message author: <@" + str(before.author.id) + ">, at https://discord.com/channels/" + str(cfg.get("guild")) + "/" + str(before.channel.id) + "/" + str(before.id)
+        embed.add_field(name = "Old message:", value = before.content, inline = False)
+        embed.add_field(name = "New message:", value = after.content, inline = False)
+        attachmentlinks = ""
+        for x in before.attachments:
+            attachmentlinks += x.proxy_url + "\n"
+        if attachmentlinks:
+            embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
+        embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
+        await logm.uploadembed(embed)
+    return
+    
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot:
+        return
+    embed = discord.Embed()
+    embed.title = "Message deleted"
+    embed.color = discord.Colour.red()
+    embed.description = "Message author: <@" + str(message.author.id) + ">"
+    embed.add_field(name = "Old message:", value = message.content, inline = False)
+    attachmentlinks = ""
+    for x in message.attachments:
+        attachmentlinks += x.proxy_url + "\n"
+    if attachmentlinks:
+        embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
+    embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
+    await logm.uploadembed(embed)
     return
     
 @bot.event

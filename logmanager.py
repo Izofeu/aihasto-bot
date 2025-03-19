@@ -9,6 +9,8 @@ class logmanager:
         self.guild = ""
         self.logchannelid = ""
         self.logchannel = ""
+        self.messagelogchannelid = ""
+        self.messagelogchannel = ""
         self.loadlogchannelid()
         # categories of logs
         self.timeouts = 1
@@ -34,7 +36,8 @@ class logmanager:
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
-        if not self.logchannelid or self.logchannelid == 0:
+        self.messagelogchannelid = self.cfg.get("messagelogchannelid")
+        if not self.logchannelid or self.logchannelid == 0 or not self.messagelogchannelid or self.messagelogchannelid == 0:
             raise Exception("Invalid log channel id")
         return
     async def uploadlog(self, content, context):
@@ -46,8 +49,15 @@ class logmanager:
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
             return None
         return message
+    async def uploadembed(self, embed):
+        try:
+            await self.messagelogchannel.send(embed = embed)
+        except:
+            pass
+        return
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
         log = "No appropriate log category has been found."
+        embed = discord.Embed()
         if category == self.timeouts:
             if mode == self.selfissuedwarn:
                 log = "A timeout has been issued to <@" + str(target) + "> by " + context.user.name + " until <t:" + str(duration) + ":F> for " + reason + "."
@@ -101,7 +111,8 @@ class logmanager:
     def ready(self):
         self.guild = self.bot.get_guild(self.cfg.get("guild"))
         self.logchannel = self.guild.get_channel(self.logchannelid)
-        if self.logchannel == None:
+        self.messagelogchannel = self.guild.get_channel(self.messagelogchannelid)
+        if self.logchannel is None or self.messagelogchannel is None:
             raise Exception("No log channel defined.")
         return
         
