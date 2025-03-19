@@ -121,8 +121,6 @@ async def on_member_join(member):
 async def on_message_edit(before, after):
     if before.author.bot:
         return
-    if pm.getpermissionlevel(before.author) == 4:
-        return
     if after.channel.id == cfg.get("greatmitaid"):
         if not cfg.get("automessagecuration"):
             return
@@ -154,6 +152,8 @@ async def on_message_edit(before, after):
     elif before.content == after.content and before.attachments == after.attachments:
         return
     else:
+        if pm.getpermissionlevel(after.author) == 4:
+            return
         embed = discord.Embed()
         embed.title="Message edited"
         embed.color = discord.Colour.orange()

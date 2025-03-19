@@ -1,6 +1,7 @@
 from extrafunctions import discorddatetodateobject, isemptyreason, getutctimestamp
 
 import discord
+import datetime
 
 class logmanager:
     def __init__(self, cfg, bot):
@@ -56,8 +57,9 @@ class logmanager:
                 await self.messagelogchannel.send(embed = embed)
             else:
                 await self.logchannel.send(embed = embed)
-        except:
-            pass
+        except Exception as e:
+            print(datetime.datetime.now())
+            print(e)
         return
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
         embed = discord.Embed()
