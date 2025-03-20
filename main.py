@@ -154,6 +154,8 @@ async def on_message_edit(before, after):
     else:
         if pm.getpermissionlevel(after.author) == 4:
             return
+        if str(before.channel.id) in cfg.get("nologs").split(","):
+            return
         embed = discord.Embed()
         embed.title="Message edited"
         embed.color = discord.Colour.orange()
@@ -174,6 +176,8 @@ async def on_message_delete(message):
     if message.author.bot:
         return
     if pm.getpermissionlevel(message.author) == 4:
+        return
+    if str(message.channel.id) in cfg.get("nologs").split(","):
         return
     embed = discord.Embed()
     embed.title = "Message deleted"
