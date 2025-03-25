@@ -148,8 +148,10 @@ class sqlmanager:
         await self.query(query, [reason])
         return
         
-    async def removewarnings(self, id):
+    async def removewarnings(self, id, issuerid = False):
         query = "DELETE FROM `warns` WHERE account_id = " + str(id) + ";"
+        if issuerid:
+            query = "DELETE FROM `warns` WHERE issuer_id = " + str(issuerid) + " AND account_id = " + str(id) + ";"
         await self.query(query)
         return
         

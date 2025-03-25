@@ -504,7 +504,7 @@ async def clearwarns(context, target: discord.Option(
     description = "Reason for removing the warnings.")
     ):
         # Command permission level
-        commandpermissionlevel = 2
+        commandpermissionlevel = 1
         # Permission check
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
@@ -789,6 +789,19 @@ async def setlogchannel(context, channel: discord.Option(
         logm.ready()
         return
 
+@bot.slash_command(description = "Enable permission debug mode. Developer only.")
+@guild_only()
+async def permdebug(context):
+    if str(context.author.id) not in cfg.get("masters").split(","):
+        await context.respond("This command can only be toggled by the bot developer.", ephemeral = True)
+        return
+    if cfg.get("permdebug") == 1:
+        cfg.set("permdebug", 0)
+        await context.respond("Disabled permission debug mode.", ephemeral = True)
+    else:
+        cfg.set("permdebug", 1)
+        await context.respond("Enabled permission debug mode.", ephemeral = True)
+    return
 
 @bot.slash_command(description = "Get user's permission level.")
 @guild_only()

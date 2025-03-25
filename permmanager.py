@@ -43,7 +43,7 @@ class permmanager:
         # Master is the bot coder who has the permission for debugging purposes.
         # Manage servers permission is considered a top level permission
         # that allows complete management over the bot.
-        if member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(","):
+        if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(",")) and self.cfg.get("permdebug") == 0:
             return 4
         if self.hasrole(member, self.cfg.get("armrole")):
             return 3

@@ -32,6 +32,7 @@ class logmanager:
         self.addwarn = 1
         self.clearwarns = 2
         self.noreason = 3
+        self.selfclearwarns = 3
         
         self.removetimeout = 2
         
@@ -93,8 +94,10 @@ class logmanager:
             embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
             if mode == self.addwarn:
                 embed.title = "Warn"
-            else:
+            elif mode == self.clearwarns:
                 embed.title = "Clear all warns"
+            else:
+                embed.title = "Clear self-issued warns"
         elif category == self.slowmodes:
             embed.color = discord.Colour.teal()
             embed.title = "Slowmode"

@@ -51,9 +51,7 @@ class rolemanager:
         roleid = self.getroleid(role_type)
         guild = self.bot.get_guild(self.cfg.get("guild"))
         role = guild.get_role(roleid)
-        maxduration = 14
-        if role_type == self.gladiatorrole:
-            maxduration = 365
+        maxduration = 365
         if mode == self.addtemprole:
             modreason = sanitizereason(context.author.name, reason = reason, addedrolename = role.name, duration = duration)
             reason = isemptyreason(reason)
