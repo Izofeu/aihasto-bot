@@ -652,7 +652,11 @@ async def untimeout(context, target: discord.Option(
 async def puppet(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
-    description = "User to toggle a Puppet role for.")
+    description = "User to toggle a Puppet role for."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for toggling the Puppet role.")
     ):
         # Rename variable for easier use
         inituser = context.author
@@ -665,14 +669,14 @@ async def puppet(context, target: discord.Option(
         # If user has role, then remove it
         puppetrole = inituser.guild.get_role(cfg.get("puppetrole"))
         if pm.hasrole(target, cfg.get("puppetrole")):
-            await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, removedrolename = puppetrole.name))
+            await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = puppetrole.name))
             await context.respond("Removed Puppet role from <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = puppetrole, reason = isemptyreason(reason))
         # User doesn't have role, remove it
         else:
-            await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, addedrolename = puppetrole.name))
+            await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = puppetrole.name))
             await context.respond("Added Puppet role to <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = puppetrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = puppetrole, reason = isemptyreason(reason))
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
@@ -680,7 +684,11 @@ async def puppet(context, target: discord.Option(
 async def hand(context, target: discord.Option(
     discord.SlashCommandOptionType.user,
     required = True,
-    description = "User to toggle a Hand role for.")
+    description = "User to toggle a Hand role for."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for toggling the Hand role.")
     ):
         # Rename variable for easier use
         inituser = context.author
@@ -693,14 +701,14 @@ async def hand(context, target: discord.Option(
         handrole = inituser.guild.get_role(cfg.get("handrole"))
         # If user has role, then remove it
         if pm.hasrole(target, cfg.get("handrole")):
-            await target.remove_roles(handrole, reason = sanitizereason(context.author.name, removedrolename = handrole.name))
+            await target.remove_roles(handrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = handrole.name))
             await context.respond("Removed Hand role from <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = handrole, reason = isemptyreason(reason))
         # User doesn't have role, remove it
         else:
-            await target.add_roles(handrole, reason = sanitizereason(context.author.name, addedrolename = handrole.name))
+            await target.add_roles(handrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = handrole.name))
             await context.respond("Added Hand role to <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = handrole)
+            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = handrole, reason = isemptyreason(reason))
         return
         
 

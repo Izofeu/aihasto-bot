@@ -79,7 +79,7 @@ class logmanager:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
                 embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
         elif category == self.roles:
-            embed.description = "Role: <@&" + str(role.id) + ">"
+            embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.magenta()
             if mode == self.addrole:
                 embed.title = "Role added"
