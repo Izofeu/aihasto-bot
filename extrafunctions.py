@@ -62,3 +62,8 @@ def discorddatetodateobject(date):
     
 def getutctimestamp():
     return str(int(datetime.datetime.now(datetime.UTC).timestamp()))
+    
+def amiauthor(message, botid):
+    if message.author.id != botid:
+        return False
+    return True

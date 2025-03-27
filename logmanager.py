@@ -42,6 +42,12 @@ class logmanager:
         if not self.logchannelid or self.logchannelid == 0 or not self.messagelogchannelid or self.messagelogchannelid == 0:
             raise Exception("Invalid log channel id")
         return
+    async def getmodlogmessage(self, messageid):
+        try:
+            message = await self.logchannel.fetch_message(int(messageid))
+        except:
+            return False
+        return message
     async def uploadlog(self, content, context):
         try:
             message = await self.logchannel.send(content)
@@ -51,6 +57,12 @@ class logmanager:
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
             return None
         return message
+    async def editembed(self, message, embed):
+        #try:
+        await message.edit(embed = embed)
+        #except:
+        #    return False
+        return True
     async def uploadembed(self, embed, ismessagelog = False):
         try:
             embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)

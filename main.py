@@ -405,37 +405,25 @@ async def removegladiator(context, target: discord.Option(
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.gladiatorrole, reason = reason)
         return
 
-@bot.slash_command(description = "Sends an unban reason for a user if ban reason wasn't filled in.")
+@bot.slash_command(description = "Adds an alternate reason to a mod action.")
 @guild_only()
-@commands.cooldown(1, 10, commands.BucketType.default)
-async def addunbanreason(context, id: discord.Option(
+async def editreason(context, messageid: discord.Option(
     discord.SlashCommandOptionType.string,
     required = True,
-    description = "ID of an unban message."),
+    description = "Message ID of a mod action to edit (right click -> Copy Message ID)."),
     reason: discord.Option(
     discord.SlashCommandOptionType.string,
     required = True,
-    description = "Unban reason to add.")
+    description = "Reason to add.")
     ):
         # Command permission level
-        commandpermissionlevel = 2
+        commandpermissionlevel = 1
         # Permission check
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        await context.respond("This command is temporarily disabled.", ephemeral = True)
+        await cmdm.editreason(context, messageid, reason)
         return
-        #await context.defer(ephemeral = True)
-        await cmdm.addunbanreason(context, id, reason)
-        
-        #await logm.sendlog(logm.unbanreasons, context = context, target = target, reason = isemptyreason(reason))
-        #await context.respond("Successfully added an unban reason of <@" + str(target.id) + "> (" + str(target.id) + ") to log channel.")
-        return
-        
-@addunbanreason.error
-async def cooldown_error(context, error):
-    await pm.throwerror(context, "This command has a global cooldown of 10 seconds.")
-    return
 
 @bot.slash_command(description = "Unbans a user with a reason.")
 @guild_only()

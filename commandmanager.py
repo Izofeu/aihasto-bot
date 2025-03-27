@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason
+from extrafunctions import isemptyreason, amiauthor
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -55,24 +55,45 @@ class cmdmanager:
         await context.send_modal(flooderui)
         return
         
-    async def addunbanreason(self, context, id, reason):
-        guild = self.bot.get_guild(self.cfg.get("guild"))
-        channel = guild.get_channel(self.cfg.get("logchannelid"))
-        try:
-            id = str(id).strip()
-            message = await channel.fetch_message(int(id))
-            if not message.content.startswith("Caution! ") or not message.author.bot:
-                await self.pm.throwerror(context, "The following message has an unban reason already or it is not a valid message!")
-                return
-            editmessage = message.content[9:]
-            editmessage = editmessage.split("\n", 1)
-            editmessage = editmessage[0]
-            editmessage += "\nUser <@" + str(context.author.id) + "> has added an unban reason: "
-            editmessage += isemptyreason(reason)
-            await message.edit(content = editmessage)
-            await context.respond("Successfully edited the unban message: https://discord.com/channels/" + str(self.cfg.get("guild")) + "/" + str(channel.id) + "/" + str(message.id), ephemeral = True)
-        except Exception as e:
-            #print(e)
-            await self.pm.throwerror(context, "Couldn't fetch the unban message!")
+    async def editreason(self, context, messageid, reason):
+        message = await self.logm.getmodlogmessage(messageid)
+        if not message:
+            await self.pm.throwerror(context, "Could not fetch the message. Check the message ID.")
             return
+        if not amiauthor(message, self.cfg.get("botid")):
+            await self.pm.throwerror(context, "Only messages sent by me can be edited.")
+            return
+        try:
+            embed = message.embeds[0]
+        except:
+            await self.pm.throwerror(context, "This message doesn't have embeds.")
+            return
+        fields = embed.fields
+        foundfield = alreadyedited = False
+        for field in fields:
+            if field.name == "Edited reason":
+                alreadyedited = True
+            elif field.name == "Issuer":
+                foundfield = field
+                issuerid = field.value
+                try:
+                    issuerid = issuerid[2:-1]
+                    issuerid = int(issuerid)
+                    if context.author.id != issuerid:
+                        permlevel = self.pm.getpermissionlevel(context.author)
+                        if permlevel < 3:
+                            await self.pm.throwerror(context, "You are not the author of this punishment. Ask Mita's Arms for assistance.")
+                            return
+                except:
+                    await self.pm.throwerror(context, "Couldn't fetch permissions for embed edit.")
+                    return False
+                break
+        if not foundfield:
+            await self.pm.throwerror(context, "This message doesn't have an Issuer field so its reason cannot be edited.")
+            return
+        if alreadyedited:
+            embed.remove_field(0)
+        embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(context.author.id) + "> - " + isemptyreason(reason), inline = False)
+        await self.logm.editembed(message, embed)
+        await context.respond("Successfully edited the embed.", ephemeral = True)
         return
