@@ -182,7 +182,7 @@ async def on_message_delete(message):
     embed = discord.Embed()
     embed.title = "Message deleted"
     embed.color = discord.Colour.red()
-    embed.description = "Message author: <@" + str(message.author.id) + ">"
+    embed.description = "Message author: <@" + str(message.author.id) + ">, at <#" + str(message.channel.id) + ">"
     embed.add_field(name = "Old message:", value = message.content, inline = False)
     attachmentlinks = ""
     for x in message.attachments:
