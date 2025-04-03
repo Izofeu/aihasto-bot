@@ -635,6 +635,24 @@ async def untimeout(context, target: discord.Option(
         await cmdm.timeout(context, target, duration = False, reason = reason, isslash = True, untimeout = True)
         return
         
+@bot.slash_command(description = "Toggles Content creator for a user.")
+@guild_only()
+async def creator(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to toggle a Content creator role for."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for toggling the Content creator role.")
+    ):
+        # Command permission level
+        if not pm.hasrole(context.author, cfg.get("contentcreatormanagerrole")) and pm.getpermissionlevel(context.author) < 4:
+            await pm.throwerror(context, "Only Content creator managers can run this command.")
+            return
+        await cmdm.role(context = context, target = target, role = rolem.contentcreatorrole, reason = reason)
+        return
+
 @bot.slash_command(description = "Toggles Puppet role for a user.")
 @guild_only()
 async def puppet(context, target: discord.Option(
@@ -646,25 +664,13 @@ async def puppet(context, target: discord.Option(
     required = False,
     description = "Reason for toggling the Puppet role.")
     ):
-        # Rename variable for easier use
-        inituser = context.author
         # Command permission level
         commandpermissionlevel = 2
         # Permission check
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        # If user has role, then remove it
-        puppetrole = inituser.guild.get_role(cfg.get("puppetrole"))
-        if pm.hasrole(target, cfg.get("puppetrole")):
-            await target.remove_roles(puppetrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = puppetrole.name))
-            await context.respond("Removed Puppet role from <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = puppetrole, reason = isemptyreason(reason))
-        # User doesn't have role, remove it
-        else:
-            await target.add_roles(puppetrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = puppetrole.name))
-            await context.respond("Added Puppet role to <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = puppetrole, reason = isemptyreason(reason))
+        await cmdm.role(context = context, target = target, role = rolem.puppetrole, reason = reason)
         return
             
 @bot.slash_command(description = "Toggles Hand role for a user.")
@@ -678,28 +684,14 @@ async def hand(context, target: discord.Option(
     required = False,
     description = "Reason for toggling the Hand role.")
     ):
-        # Rename variable for easier use
-        inituser = context.author
         # Command permission level
         commandpermissionlevel = 3
         # Permission check
         canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        handrole = inituser.guild.get_role(cfg.get("handrole"))
-        # If user has role, then remove it
-        if pm.hasrole(target, cfg.get("handrole")):
-            await target.remove_roles(handrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = handrole.name))
-            await context.respond("Removed Hand role from <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.removerole, target = target, role = handrole, reason = isemptyreason(reason))
-        # User doesn't have role, remove it
-        else:
-            await target.add_roles(handrole, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = handrole.name))
-            await context.respond("Added Hand role to <@" + str(target.id) + ">.")
-            await logm.sendlog(logm.roles, context, mode = logm.addrole, target = target, role = handrole, reason = isemptyreason(reason))
+        await cmdm.role(context = context, target = target, role = rolem.handrole, reason = reason)
         return
-        
-
         
 @bot.slash_command(description = "Mark which roles are moderation roles.")
 @guild_only()
@@ -735,6 +727,31 @@ async def setmodroles(context, puppet: discord.Option(
             await context.respond("Marked " + puppet.name + " as Puppet, " + hand.name + " as Hand, " + arm.name + " as Arm and " + flooder.name + " as Flooder.")
         except:
             await context.respond("Error setting roles.")
+        return
+        
+@bot.slash_command(description = "Mark which roles are content creator roles.")
+@guild_only()
+async def setcreatorroles(context, contentcreatormanager: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Content Creator Manager role."),
+    contentcreator: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Content Creator role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            cfg.set("contentcreatormanagerrole", contentcreatormanager.id)
+            cfg.set("contentcreatorrole", contentcreator.id)
+            await context.respond("Marked " + contentcreatormanager.name + " as Content creator manager and " + contentcreator.name + " as Content creator.")
+        except:
+            await pm.throwerror(context, "Error setting roles.")
         return
         
 @bot.slash_command(description = "Mark which roles are event roles.")

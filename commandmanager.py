@@ -50,6 +50,10 @@ class cmdmanager:
             pass
         return
         
+    async def role(self, context, target, role, reason):
+        await self.rolem.role(context, target, role, reason)
+        return
+        
     async def openfloodermenu(self, context, target):
         flooderui = c_ui.flooderui(context, target, self.rolem, self.temprole)
         await context.send_modal(flooderui)

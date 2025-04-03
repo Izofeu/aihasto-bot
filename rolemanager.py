@@ -12,6 +12,9 @@ class rolemanager:
         self.flooderrole = 1
         self.gladiatorrole = 2
         self.mrmustardrole = 3
+        self.puppetrole = 4
+        self.handrole = 5
+        self.contentcreatorrole = 6
         
     def getroleid(self, rolemode):
         if rolemode == self.sqlm.flooderrole:
@@ -20,6 +23,12 @@ class rolemanager:
             roleid = self.cfg.get("gladiatorid")
         elif rolemode == self.sqlm.mrmustardrole:
             roleid = self.cfg.get("mustardid")
+        elif rolemode == self.puppetrole:
+            roleid = self.cfg.get("puppetrole")
+        elif rolemode == self.handrole:
+            roleid = self.cfg.get("handrole")
+        elif rolemode == self.contentcreatorrole:
+            roleid = self.cfg.get("contentcreatorrole")
         return roleid
         
     async def fetchroleandmember(self, rolemode, memberid):
@@ -80,3 +89,23 @@ class rolemanager:
             await self.pm.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", interaction = interaction)
             await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.removerole, target = target, reason = reason, role = role)
             return role, False, reason
+            
+    async def role(self, context, target, role, reason):
+        roleid = self.getroleid(role)
+        guild = self.bot.get_guild(self.cfg.get("guild"))
+        role = guild.get_role(roleid)
+        isnotmodrole = True
+        if role is None:
+            print("No role found.")
+            return
+        if role.id == self.cfg.get("puppetrole") or role.id == self.cfg.get("handrole"):
+            isnotmodrole = False
+        if self.pm.hasrole(target, role.id):
+            await target.remove_roles(role, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = role.name))
+            await context.respond("Removed " + role.name + " role from <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
+            await self.logm.sendlog(self.logm.roles, context, mode = self.logm.removerole, target = target, role = role, reason = isemptyreason(reason))
+        else:
+            await target.add_roles(role, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = role.name))
+            await context.respond("Added " + role.name + " role to <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
+            await self.logm.sendlog(self.logm.roles, context, mode = self.logm.addrole, target = target, role = role, reason = isemptyreason(reason))
+        return
