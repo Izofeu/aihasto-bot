@@ -374,7 +374,7 @@ async def addgladiator(context, target: discord.Option(
         except:
             await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
             return
-        if not pm.hasrole(context.author, eventmanagerrole) and pm.getpermissionlevel(context.author) < 4:
+        if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
         await context.defer(ephemeral = True)

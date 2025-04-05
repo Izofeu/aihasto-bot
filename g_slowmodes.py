@@ -14,8 +14,8 @@ class slowmodes:
         if "general" not in str(target.name):
             await self.pm.throwerror(context, "You can only edit slow mode for general channels.")
             return
-        if delay < 5 or delay > 21600:
-            await self.pm.throwerror(context, "Invalid slow mode duration. Allowed values: 5 - 21600 seconds.")
+        if delay < 1 or delay > 21600:
+            await self.pm.throwerror(context, "Invalid slow mode duration. Allowed values: 1 - 21600 seconds.")
             return
         try:
             await target.edit(reason = sanitizereason(context.author.name), slowmode_delay = delay)
