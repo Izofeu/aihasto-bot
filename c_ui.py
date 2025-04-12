@@ -102,3 +102,15 @@ class warnui(discord.ui.Modal):
         await self.addwarn(self.context, self.target, reason = reason, interaction = interaction)
         #await interaction.response.send_message(message, ephemeral = True)
         return
+        
+class editreasonui(discord.ui.Modal):
+    def __init__(self, message, cmdm):
+        super().__init__(title = "Edit mod reason")
+        self.message = message
+        self.cmdm = cmdm
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
+    
+    async def callback(self, interaction):
+        reason = self.children[0].value
+        await self.cmdm.editreason(interaction, self.message, reason)
+        return

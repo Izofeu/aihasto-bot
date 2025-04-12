@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, amiauthor
+from extrafunctions import isemptyreason, amiauthor, getauthor
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -6,7 +6,7 @@ import discord
 import c_ui
 
 class cmdmanager:
-    def __init__(self, cfg, bot, pm, sql, rolemanager, log):
+    def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager):
         # Load managers
         self.cfg = cfg
         self.bot = bot
@@ -14,6 +14,7 @@ class cmdmanager:
         self.sqlm = sql
         self.rolem = rolemanager
         self.logm = log
+        self.responsem = responsemanager
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql)
@@ -59,18 +60,20 @@ class cmdmanager:
         await context.send_modal(flooderui)
         return
         
-    async def editreason(self, context, messageid, reason):
-        message = await self.logm.getmodlogmessage(messageid)
-        if not message:
-            await self.pm.throwerror(context, "Could not fetch the message. Check the message ID.")
-            return
+    async def openeditreasonmenu(self, context, message):
+        editreasonmenu = c_ui.editreasonui(message, self)
+        await context.send_modal(editreasonmenu)
+        return
+        
+    async def editreason(self, context, message, reason):
+        author = getauthor(context)
         if not amiauthor(message, self.cfg.get("botid")):
-            await self.pm.throwerror(context, "Only messages sent by me can be edited.")
+            await self.responsem.respond(context, self.responsem.e_messageauthornotbot)
             return
         try:
             embed = message.embeds[0]
         except:
-            await self.pm.throwerror(context, "This message doesn't have embeds.")
+            await self.responsem.respond(context, self.responsem.e_messagenoembeds)
             return
         fields = embed.fields
         foundfield = alreadyedited = False
@@ -83,21 +86,21 @@ class cmdmanager:
                 try:
                     issuerid = issuerid[2:-1]
                     issuerid = int(issuerid)
-                    if context.author.id != issuerid:
-                        permlevel = self.pm.getpermissionlevel(context.author)
+                    if author.id != issuerid:
+                        permlevel = self.pm.getpermissionlevel(author)
                         if permlevel < 3:
-                            await self.pm.throwerror(context, "You are not the author of this punishment. Ask Mita's Arms for assistance.")
+                            await self.responsem.respond(context, self.responsem.e_messagenotauthorandnothand)
                             return
                 except:
-                    await self.pm.throwerror(context, "Couldn't fetch permissions for embed edit.")
+                    await self.responsem.respond(context, self.responsem.e_nopermissionembededit)
                     return False
                 break
         if not foundfield:
-            await self.pm.throwerror(context, "This message doesn't have an Issuer field so its reason cannot be edited.")
+            await self.responsem.respond(context, self.responsem.e_noissuerfield)
             return
         if alreadyedited:
             embed.remove_field(0)
-        embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(context.author.id) + "> - " + isemptyreason(reason), inline = False)
+        embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(author.id) + "> - " + isemptyreason(reason), inline = False)
         await self.logm.editembed(message, embed)
-        await context.respond("Successfully edited the embed.", ephemeral = True)
+        await self.responsem.respond(context, self.responsem.s_editedembed)
         return

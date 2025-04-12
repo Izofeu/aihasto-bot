@@ -1,4 +1,5 @@
 import datetime
+from discord.ext import commands
 def isvalidtime(time, maxduration = 14):
     try:
         # Time format should be a number followed by a letter like minute, hour, day
@@ -67,3 +68,8 @@ def amiauthor(message, botid):
     if message.author.id != botid:
         return False
     return True
+    
+def getauthor(context):
+    if isinstance(context, commands.Context):
+        return context.author
+    return context.user

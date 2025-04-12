@@ -11,6 +11,7 @@ import logmanager
 import commandmanager
 import rolemanager
 import c_ui
+import responsemanager
 from extrafunctions import getutctimestamp
 
 messagecache = []
@@ -44,13 +45,13 @@ cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
 token = cfg.loadtoken()
-
+responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm)
-cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm)
+cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
 def isemptyreason(reason):
     if not reason:
@@ -249,6 +250,18 @@ async def checktemproles():
     await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
+@bot.message_command(name = "Edit mod reason")
+@guild_only()
+async def editmodreason(context, message):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.openeditreasonmenu(context, message)
+    return
+    
 @bot.message_command(name = "Warn for this message")
 @guild_only()
 async def autowarn(context, message: discord.Message):
@@ -403,26 +416,6 @@ async def removegladiator(context, target: discord.Option(
             return
         await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.gladiatorrole, reason = reason)
-        return
-
-@bot.slash_command(description = "Adds an alternate reason to a mod action.")
-@guild_only()
-async def editreason(context, messageid: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = True,
-    description = "Message ID of a mod action to edit (right click -> Copy Message ID)."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = True,
-    description = "Reason to add.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
-        if not canrun:
-            return
-        await cmdm.editreason(context, messageid, reason)
         return
 
 @bot.slash_command(description = "Unbans a user with a reason.")
