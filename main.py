@@ -203,7 +203,9 @@ async def on_message(message):
     reasonmita = "Incorrect message in miside-great-mita."
     reasongif = "Incorrect message in gif-party."
     try:
-        if message.channel.id == cfg.get("greatmitaid"):
+        if message.channel.id == cfg.get("logchannelid"):
+            await message.delete()
+        elif message.channel.id == cfg.get("greatmitaid"):
             if message.content != "Praying for you 🕯️ O Great Mita 💝" or str(message.type) == "MessageType.reply":
                 await message.delete(reason = reasonmita)
         elif message.channel.id == cfg.get("gifpartyid"):
@@ -261,12 +263,6 @@ async def editmodreason(context, message):
         return
     await cmdm.openeditreasonmenu(context, message)
     return
-    
-@bot.message_command(name = "Warn for this message")
-@guild_only()
-async def autowarn(context, message: discord.Message):
-    # message.author returns user instead of member
-    await context.respond("This functionality is not implemented yet.", ephemeral = True)
 
 @bot.user_command(name = "Issue flooder")
 @guild_only()
