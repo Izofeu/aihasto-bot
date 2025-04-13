@@ -4,9 +4,10 @@ import discord
 import datetime
 
 class logmanager:
-    def __init__(self, cfg, bot):
+    def __init__(self, cfg, bot, sql):
         self.cfg = cfg
         self.bot = bot
+        self.sqlm = sql
         self.guild = ""
         self.logchannelid = ""
         self.logchannel = ""
@@ -81,15 +82,24 @@ class logmanager:
             embed.description = reason
             embed.color = discord.Colour.purple()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            # Duration is an array [date, timestamp]
+            if mode != self.removetimeout:
+                date = duration[0].strftime("%Y-%m-%d %H:%M:%S")
             if mode == self.selfissuedwarn:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.user.id) + ">", inline = False)
-                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
+                embed.add_field(name = "Until", value = "<t:" + str(duration[1]) + ":F>", inline = False)
+                
+                await self.sqlm.addtimeout(target, context.user.id, date, reason)
             elif mode == self.removetimeout:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
                 embed.title = "Timeout remove"
+                
+                await self.sqlm.removetimeout(target)
             else:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
+                embed.add_field(name = "Until", value = "<t:" + str(duration[1]) + ":F>", inline = False)
+                
+                await self.sqlm.addtimeout(target, context.id, date, reason)
         elif category == self.roles:
             embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.magenta()
@@ -203,7 +213,7 @@ class logmanager:
                 if x.get("key") == "communication_disabled_until":
                     if x.get("new_value"):
                         date, timestamp = discorddatetodateobject(x.get("new_value"))
-                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = timestamp, reason = isemptyreason(logentry.reason))
+                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason))
                     else:
                         await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == ban:

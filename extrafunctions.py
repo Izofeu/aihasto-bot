@@ -73,3 +73,14 @@ def getauthor(context):
     if isinstance(context, commands.Context):
         return context.author
     return context.user
+    
+def gettimedifferencestr(date1, date2):
+    timedifference = date2 - date1
+    timedifference = int(timedifference.total_seconds())
+    # Account for potential clock desync of 1 minute
+    timedifference += 60
+    hours = timedifference // 3600
+    timediff = str(hours) + " hour(s)"
+    if hours == 0:
+        timediff = "<1 hour"
+    return timediff

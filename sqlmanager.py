@@ -72,20 +72,19 @@ class sqlmanager:
                 ");"
                 )
                 await cur.execute(tablequery)
-                # Port database code goes here
-                if self.cfg.get("portdatabase") == 1:
-                    tablequery = "SELECT `account_id`, `expiration_date`, `removed` FROM `flooders`;"
-                    await cur.execute(tablequery)
-                    result = await cur.fetchall()
-                    for x in result:
-                        aid = str(x[0])
-                        date = str(x[1])
-                        removed = str(x[2])
-                        tablequery = "INSERT INTO `temproles` (`account_id`, `expiration_date`, `role_type`, `removed`) VALUES ('" + aid + "', '" + date + "', " + str(self.flooderrole) + ", " + removed + ");"
-                        await cur.execute(tablequery)
-                        #tablequery = "DELETE FROM `flooders`;"
-                        #await cur.execute(tablequery)
-                    self.cfg.set("portdatabase", 0)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `timeouts`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL DEFAULT '0'," +
+                "`expiration_date` DATETIME NOT NULL," +
+                "`issue_date` DATETIME NOT NULL DEFAULT '2025-01-01 00:00:00'," +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -99,6 +98,19 @@ class sqlmanager:
             await self.condisconnect(1)
             # Return the query result
         return result
+    
+    async def addtimeout(self, id, issuer_id, duration, reason):
+        query = (
+        "INSERT INTO `timeouts` (account_id, issuer_id, expiration_date, issue_date, reason) VALUES (" +
+        str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', '" + datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S") + "', %s);"
+        )
+        await self.query(query, [reason])
+        return
+        
+    async def removetimeout(self, id):
+        query = "DELETE FROM `timeouts` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1;"
+        await self.query(query)
+        return
         
     async def addtemprole(self, id, issuer_id, duration, role_type, reason = False):
         # Prepare the query for adding a temprole record

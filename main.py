@@ -49,7 +49,7 @@ responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg)
 sqlm = sqlmanager.sqlmanager(cfg)
-logm = logmanager.logmanager(cfg, bot)
+logm = logmanager.logmanager(cfg, bot, sqlm)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm)
 cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
@@ -161,8 +161,18 @@ async def on_message_edit(before, after):
         embed.title="Message edited"
         embed.color = discord.Colour.orange()
         embed.description = "Message author: <@" + str(before.author.id) + ">, at https://discord.com/channels/" + str(cfg.get("guild")) + "/" + str(before.channel.id) + "/" + str(before.id)
-        embed.add_field(name = "Old message:", value = before.content, inline = False)
-        embed.add_field(name = "New message:", value = after.content, inline = False)
+        oldmessage = before.content
+        oldmessagetitle = "Old message:"
+        newmessagetitle = "New message:"
+        if len(oldmessage) > 1023:
+            oldmessage = oldmessage[:1023]
+            oldmessagetitle += " (trimmed)"
+        newmessage = after.content
+        if len(newmessage) > 1023:
+            newmessage = newmessage[:1023]
+            newmessagetitle += " (trimmed)"
+        embed.add_field(name = oldmessagetitle, value = oldmessage, inline = False)
+        embed.add_field(name = newmessagetitle, value = newmessage, inline = False)
         attachmentlinks = ""
         for x in before.attachments:
             attachmentlinks += x.proxy_url + "\n"
@@ -190,6 +200,11 @@ async def on_message_delete(message):
         attachmentlinks += x.proxy_url + "\n"
     if attachmentlinks:
         embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
+    stickers = ""
+    for x in message.stickers:
+        stickers += x.url + "\n"
+    if stickers:
+        embed.add_field(name = "Stickers:", value = stickers, inline = False)
     #embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
     await logm.uploadembed(embed, ismessagelog = True)
     return
