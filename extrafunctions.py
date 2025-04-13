@@ -61,6 +61,17 @@ def discorddatetodateobject(date):
     timestamp = int(date.timestamp())
     return date, timestamp
     
+def sqldatetodateobject(date):
+    format = "%Y-%m-%d %H:%M:%S %z"
+    date = str(date)
+    date += " +0000"
+    date = datetime.datetime.strptime(date, format)
+    timestamp = int(date.timestamp())
+    return date, timestamp
+    
+def datetotimestamp(date):
+    return int(date.timestamp())
+    
 def getutctimestamp():
     return str(int(datetime.datetime.now(datetime.UTC).timestamp()))
     

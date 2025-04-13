@@ -278,67 +278,17 @@ async def editmodreason(context, message):
         return
     await cmdm.openeditreasonmenu(context, message)
     return
-
-@bot.user_command(name = "Issue flooder")
+    
+@bot.user_command(name = "Show punishments")
 @guild_only()
-async def floodermenu(context, member: discord.Member):
+async def showpunishments(context, member: discord.Member):
+    # Command permission level
     commandpermissionlevel = 1
     # Permission check
     canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel)
     if not canrun:
         return
-    await cmdm.openfloodermenu(context, member)
-    return
-
-@bot.user_command(name = "Show flooders")
-@guild_only()
-async def showflooders(context, member: discord.Member):
-    commandpermissionlevel = 1
-    # Permission check
-    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
-    if not canrun:
-        return
-    floodercount, flooders = await sqlm.getflooders(member.id)
-    if floodercount > 0:
-        format = "%Y-%m-%d %H:%M:%S %z"
-        message = "<@" + str(member.id) + "> has received " + str(floodercount) + " flooders in last 30 days:"
-        for f in flooders:
-            dateexpiry = f[2]
-            # datetime object assumes timezone of the machine
-            # this part of code recreates the object with utc timezone
-            dateexpiry = str(dateexpiry)
-            dateexpiry += " +0000"
-            dateexpiry = datetime.datetime.strptime(dateexpiry, format)
-            timeexpiry = int(dateexpiry.timestamp())
-            
-            dateuntil = f[1]
-            # datetime object assumes timezone of the machine
-            # this part of code recreates the object with utc timezone
-            dateuntil = str(dateuntil)
-            dateuntil += " +0000"
-            dateuntil = datetime.datetime.strptime(dateuntil, format)
-            timeuntil = int(dateuntil.timestamp())
-            
-            message += "\nIssued <t:" + str(timeexpiry) + ":R> until: <t:" + str(timeuntil) + ":F> - <@" + str(f[0]) + "> - " + str(f[3])
-            message = message[:1999]
-        
-    else:
-        message = "<@" + str(member.id) + "> has not received any flooders in last 30 days."
-    view = c_ui.issueflooderbutton(pm, context = context, target = member, flooderui = c_ui.flooderui, rolem = rolem, temprole = cmdm.temprole)
-    messagehook = await context.respond(message, view = view, ephemeral = True)
-    view.setwebhook(messagehook)
-    return
-    
-@bot.user_command(name = "Show warnings")
-@guild_only()
-async def showwarnings(context, member: discord.Member):
-    # Command permission level
-    commandpermissionlevel = 1
-    # Permission check
-    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
-    if not canrun:
-        return
-    await cmdm.warn(context, target = member, showwarns = True)
+    await cmdm.showpunishmenthistory(context, member)
     return
     
 @bot.slash_command(description = "Adds Mr Mustard to a user for 24 hours.")
@@ -502,7 +452,7 @@ async def clearwarns(context, target: discord.Option(
         if not canrun:
             return
         await context.defer(ephemeral = True)
-        await cmdm.warn(context, target, reason, True, False)
+        await cmdm.warn(context, target, reason, True)
         return
     
 @bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
@@ -523,7 +473,7 @@ async def warn(context, target: discord.Option(
         if not canrun:
             return
         await context.defer(ephemeral = True)
-        await cmdm.warn(context, target, reason, False, False)
+        await cmdm.warn(context, target, reason, False)
         return
     
 @bot.slash_command(description = "Remove a flooder from a user.")

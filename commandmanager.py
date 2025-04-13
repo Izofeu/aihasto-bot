@@ -1,9 +1,10 @@
-from extrafunctions import isemptyreason, amiauthor, getauthor
+from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr
 import p_timeouts
 import p_warns
 import g_slowmodes
 import discord
 import c_ui
+import datetime
 
 class cmdmanager:
     def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager):
@@ -17,7 +18,7 @@ class cmdmanager:
         self.responsem = responsemanager
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log)
-        self.warns = p_warns.warns(cfg, bot, pm, log, sql)
+        self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
     async def timeout(self, context, target, duration, reason, isslash, untimeout = False):
@@ -28,13 +29,41 @@ class cmdmanager:
         await self.slowmodes.setslowmode(context, target, delay)
         return
         
-    async def warn(self, context, target = False, reason = False, clearwarns = False, showwarns = False):
-        if showwarns:
-            await self.warns.showwarnings(context, target)
-        elif clearwarns:
+    async def warn(self, context, target = False, reason = False, clearwarns = False):
+        if clearwarns:
             await self.warns.clearwarns(context, target, reason)
         else:
             await self.warns.addwarn(context, target, reason)
+        return
+        
+    async def showpunishmenthistory(self, context, member):
+        await context.defer(ephemeral = True)
+        history = await self.sqlm.getpunishments(member.id)
+        #[0][0-1] - floodercount, flooders (issuer_id, issue_date, reason)
+        #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason)
+        #[2][0-1] - timeoutcount, timeouts (issuer_id, expiration_date, issue_date, reason)
+        if history[0][0] == 0 and history[1][0] == 0 and history[2][0] == 0:
+            message = "User <@" + str(member.id) + "> has no punishment history."
+        else:
+            message = "User <@" + str(member.id) + "> has received following punishments:"
+            for flooder in history[0][1]:
+                date, timestamp = sqldatetodateobject(flooder[1])
+                message += "\n:ocean: <t:" + str(timestamp) + ":R> - <@" + str(flooder[0]) + "> - " + flooder[2]
+                
+            for warn in history[1][1]:
+                date, timestamp = sqldatetodateobject(warn[1])
+                # Warns only have expiration date which is 3 days into the future
+                date = date - datetime.timedelta(days = 3)
+                timestamp = datetotimestamp(date)
+                message += "\n:warning: <t:" + str(timestamp) + ":R> - <@" + str(warn[0]) + "> - " + warn[2]
+                
+            for timeout in history[2][1]:
+                expirationdate, expirationtimestamp = sqldatetodateobject(timeout[1])
+                issuedate, issuetimestamp = sqldatetodateobject(timeout[2])
+                timediff = gettimedifferencestr(expirationdate, issuedate)
+                message += "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3]
+                
+        await self.responsem.respond(context, self.responsem.payload, payload = message)
         return
         
     async def temprole(self, context, target, mode, roletype, duration = False, reason = False, interaction = False):

@@ -18,6 +18,7 @@ class sqlmanager:
         # Unused variable
         self.connected = False
         self.connection = None
+        self.cur = None
         # Variable for running a check query once
         self.firstRun = True
         passwordfile = self.cfg.get("dbpwdfile")
@@ -39,10 +40,13 @@ class sqlmanager:
             except:
                 raise Exception("Couldn't connect to database.")
         return
-    async def query(self, query, params = False):
-        async with self.lock:
-            await self.condisconnect(0)
-            cur = await self.connection.cursor()
+    async def query(self, query, params = False, maintainconnection = False, connect = True, nolock = False):
+        if connect:
+            await self.lock.acquire()
+        try:
+            if connect:
+                await self.condisconnect(0)
+                self.cur = await self.connection.cursor()
             if self.firstRun:
                 # Run a create table if not exists query once
                 tablequery = (
@@ -56,7 +60,7 @@ class sqlmanager:
                 "PRIMARY KEY (id)" +
                 ");"
                 )
-                await cur.execute(tablequery)
+                await self.cur.execute(tablequery)
                 tablequery = (
                 "CREATE TABLE IF NOT EXISTS `temproles`" +
                 "(" +
@@ -71,7 +75,7 @@ class sqlmanager:
                 "PRIMARY KEY (id)" +
                 ");"
                 )
-                await cur.execute(tablequery)
+                await self.cur.execute(tablequery)
                 tablequery = (
                 "CREATE TABLE IF NOT EXISTS `timeouts`" +
                 "(" +
@@ -84,19 +88,23 @@ class sqlmanager:
                 "PRIMARY KEY (id)" +
                 ");"
                 )
-                await cur.execute(tablequery)
+                await self.cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
-                await cur.execute(query, params)
+                await self.cur.execute(query, params)
             else:
-                await cur.execute(query)
+                await self.cur.execute(query)
             # Fetch the result of a query
-            result = await cur.fetchall()
-            await cur.close()
-            # Close connection
-            await self.condisconnect(1)
+            result = await self.cur.fetchall()
+            if not maintainconnection:
+                await self.cur.close()
+                # Close connection
+                await self.condisconnect(1)
             # Return the query result
+        finally:
+            if not maintainconnection:
+                self.lock.release()
         return result
     
     async def addtimeout(self, id, issuer_id, duration, reason):
@@ -172,18 +180,28 @@ class sqlmanager:
         await self.query(query)
         return
         
-    async def getwarnings(self, id):
-        query = "SELECT issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 10;"
-        result = await self.query(query)
-        query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
-        count = await self.query(query)
+    async def getflooders(self, id):
+        # Gets executed 1st
+        query = "SELECT issuer_id, issue_date, reason FROM `temproles` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
+        result = await self.query(query, maintainconnection = True)
+        query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + ";"
+        count = await self.query(query, maintainconnection = True, connect = False)
         return count[0][0], result
         
-    async def getflooders(self, id):
-        query = "SELECT issuer_id, expiration_date, issue_date, reason FROM `temproles` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
-        result = await self.query(query)
-        query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + ";"
-        count = await self.query(query)
+    async def getwarnings(self, id):
+        # Gets executed 2nd
+        query = "SELECT issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 5;"
+        result = await self.query(query, maintainconnection = True, connect = False)
+        query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
+        count = await self.query(query, maintainconnection = True, connect = False)
+        return count[0][0], result
+        
+    async def gettimeouts(self, id):
+        # Gets executed 3rd, closes connection
+        query = "SELECT issuer_id, expiration_date, issue_date, reason FROM `timeouts` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
+        result = await self.query(query, maintainconnection = True, connect = False)
+        query = "SELECT COUNT(id) FROM `timeouts` WHERE account_id = " + str(id) + ";"
+        count = await self.query(query, maintainconnection = False, connect = False)
         return count[0][0], result
         
     async def isflooder(self, id):
@@ -191,7 +209,17 @@ class sqlmanager:
         result = await self.query(query)
         return int(result[0][0])
         
-    async def getwarncount(self, id):
-        query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
-        result = await self.query(query)
-        return int(result[0][0])
+    async def getpunishments(self, id):
+        try:
+            # Flooders
+            floodercount, flooders = await self.getflooders(id)
+            # Warnings
+            warncount, warnings = await self.getwarnings(id)
+            # Timeouts
+            timeoutcount, timeouts = await self.gettimeouts(id)
+        except Exception as e:
+            print(e)
+            # In case something ever goes wrong, release the AIO lock
+            if self.lock.locked():
+                self.lock.release()
+        return [[floodercount, flooders], [warncount, warnings], [timeoutcount, timeouts]]
