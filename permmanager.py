@@ -1,9 +1,11 @@
+import discord
 # WARNING! These permission methods are sensitive as they safeguard the bot against misuse.
 # Any changes here could result in unauthorized users being able to run forbidden commands!
 class permmanager:
-    def __init__(self, cfg):
+    def __init__(self, cfg, responsem):
         # Prepare cfg
         self.cfg = cfg
+        self.responsem = responsem
         
     async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False):
         # This method checks if a member has permission to run a command.
@@ -27,6 +29,9 @@ class permmanager:
                 return False
             # If a command affects another user, perform a hierarchy check
             if target:
+                if not isinstance(target, discord.Member):
+                    await self.responsem.respond(context, self.responsem.e_leftserver, target)
+                    return False
                 if target.bot:
                     await self.throwerror(context, "The target mustn't be a bot.")
                     return False

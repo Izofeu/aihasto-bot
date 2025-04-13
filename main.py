@@ -47,7 +47,7 @@ cfg.load()
 token = cfg.loadtoken()
 responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
-pm = permmanager.permmanager(cfg)
+pm = permmanager.permmanager(cfg, responsem)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot, sqlm)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm)

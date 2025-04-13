@@ -12,6 +12,7 @@ class responsemanager:
         self.e_noissuerfield = 6
         self.s_editedembed = 7
         self.s_addedwarning = 8
+        self.e_leftserver = 9
         
     async def respond(self, context, type, target = None, reason = None, payload = None):
         if isinstance(context, commands.Context):
@@ -35,6 +36,8 @@ class responsemanager:
             message = "Successfully edited the embed."
         elif type == self.s_addedwarning:
             message = "User <@" + str(target) + "> has been issued a warning for " + reason + "."
+        elif type == self.e_leftserver:
+            message = "User <@" + str(target.id) + "> has left the server."
         if isinstance(context, commands.Context):
             await context.respond(message, ephemeral = True)
         else:
