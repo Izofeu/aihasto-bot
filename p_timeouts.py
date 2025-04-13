@@ -32,7 +32,7 @@ class timeouts:
                 except:
                     pass
                 await context.respond("User <@" + str(target.id) + "> has been timed out for " + duration + ".", ephemeral = True)
-                await self.logm.sendlog(self.logm.timeouts, context.author, target = target.id, duration = untiltimestamp, reason = isemptyreason(reason))
+                await self.logm.sendlog(self.logm.timeouts, context.author, target = target.id, duration = [time, untiltimestamp], reason = isemptyreason(reason))
             except:
                 await context.respond("Error issuing a timeout. Check bot permissions.", ephemeral = True)
             return
