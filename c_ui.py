@@ -116,12 +116,19 @@ class editreasonui(discord.ui.Modal):
         
 class newflooderui(discord.ui.Modal):
     async def callback(self, interaction):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await self.canrun(interaction, interaction.user, target = self.target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
         duration = self.children[0].value
         reason = self.children[1].value
         await self.rolem.temprole(interaction, self.target, self.rolem.addtemprole, self.rolem.flooderrole, duration = duration, reason = reason)
         
-    def __init__(self, member, rolemanager):
+    def __init__(self, member, rolemanager, canrun):
         super().__init__(title = "Issue flooder")
+        self.canrun = canrun
         self.target = member
         self.rolem = rolemanager
         self.add_item(discord.ui.InputText(label = "Duration", value = "2d", required = True, max_length = 4))
@@ -129,17 +136,30 @@ class newflooderui(discord.ui.Modal):
         
 class newwarnui(discord.ui.Modal):
     async def callback(self, interaction):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await self.canrun(interaction, interaction.user, target = self.target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
         reason = self.children[0].value
         await self.addwarn(interaction, self.target, reason = reason)
         
-    def __init__(self, member, addwarn):
+    def __init__(self, member, addwarn, canrun):
         super().__init__(title = "Issue warn")
+        self.canrun = canrun
         self.target = member
         self.addwarn = addwarn
         self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
         
 class newtimeoutui(discord.ui.Modal):
     async def callback(self, interaction):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await self.canrun(interaction, interaction.user, target = self.target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
         duration = self.children[0].value
         reason = self.children[1].value
         await self.addtimeout(interaction, self.target, duration = duration, reason = reason)
@@ -148,8 +168,9 @@ class newtimeoutui(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label = "Duration", value = duration, required = True, max_length = 4))
         self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
         
-    def __init__(self, target, addtimeout):
+    def __init__(self, target, addtimeout, canrun):
         super().__init__(title = "Issue timeout")
+        self.canrun = canrun
         self.target = target
         self.addtimeout = addtimeout
         
@@ -188,10 +209,11 @@ class punishmentbuttons(discord.ui.View):
     def sethook(self, hook):
         self.hook = hook
         
-    def __init__(self, target, warnui, timeoutui, flooderui):
-        super().__init__()
+    def __init__(self, permmanager, target, warnui, timeoutui, flooderui):
+        super().__init__(timeout = 60)
         self.target = target
         self.warnui = warnui
         self.timeoutui = timeoutui
         self.flooderui = flooderui
         self.hook = None
+        self.pm = permmanager

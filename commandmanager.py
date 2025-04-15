@@ -21,8 +21,8 @@ class cmdmanager:
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
-    async def timeout(self, context, target, duration, reason, isslash, untimeout = False):
-        await self.timeouts.issuetimeout(context, target, duration, reason, isslash, untimeout)
+    async def timeout(self, context, target, duration, reason, untimeout = False):
+        await self.timeouts.issuetimeout(context, target, duration, reason, untimeout)
         return
         
     async def setslowmode(self, context, target, delay):
@@ -63,10 +63,10 @@ class cmdmanager:
                 timediff = gettimedifferencestr(expirationdate, issuedate)
                 message += "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3]
                 
-        addflooderui = c_ui.newflooderui(member, self.rolem)
-        addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout)
-        addwarnui = c_ui.newwarnui(member, self.warns.addwarn)
-        punishmentbuttons = c_ui.punishmentbuttons(member, addwarnui, addtimeoutui, addflooderui)
+        addflooderui = c_ui.newflooderui(member, self.rolem, self.pm.canrun)
+        addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
+        addwarnui = c_ui.newwarnui(member, self.warns.addwarn, self.pm.canrun)
+        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui)
         response = await self.responsem.respond(context, message, view = punishmentbuttons)
         punishmentbuttons.sethook(response)
         return

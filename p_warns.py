@@ -26,18 +26,19 @@ class warns:
         return
         
     async def clearwarns(self, context, target, reason):
-        permlevel = self.pm.getpermissionlevel(context.author)
+        author = getauthor(context)
+        permlevel = self.pm.getpermissionlevel(author)
         try:
             if permlevel == 1:
-                await self.sqlm.removewarnings(target.id, context.author.id)
-                await context.respond("Warnings for user <@" + str(target.id) + "> issued by you have been removed.", ephemeral = True)
-                await self.logm.sendlog(self.logm.warns, context, target = target, mode = self.logm.selfclearwarns, reason = isemptyreason(reason))
+                await self.sqlm.removewarnings(target.id, author.id)
+                await self.responsem.respond(context, "Warnings for user <@" + str(target.id) + "> issued by you have been removed.")
+                await self.logm.sendlog(self.logm.warns, author, target = target, mode = self.logm.selfclearwarns, reason = isemptyreason(reason))
             else:
                 await self.sqlm.removewarnings(target.id)
-                await context.respond("All warnings for user <@" + str(target.id) + "> have been removed.", ephemeral = True)
-                await self.logm.sendlog(self.logm.warns, context, target = target, mode = self.logm.clearwarns, reason = isemptyreason(reason))
+                await self.responsem.respond(context, "All warnings for user <@" + str(target.id) + "> have been removed.")
+                await self.logm.sendlog(self.logm.warns, author, target = target, mode = self.logm.clearwarns, reason = isemptyreason(reason))
         except:
-            await self.pm.throwerror(context, "Error removing warnings.")
+            await self.responsem.respond(context, "Error removing warnings.")
         return
         
     async def getwarningmessage(self, member):

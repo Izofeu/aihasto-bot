@@ -22,10 +22,7 @@ class permmanager:
             # Check permission level of the user who ran the command
             inituser_permissionlevel = self.getpermissionlevel(member)
             if inituser_permissionlevel < commandpermissionlevel:
-                if interaction:
-                    await self.throwerrorinteraction(context, "You do not have enough permissions to run this command.")
-                else:
-                    await self.throwerror(context, "You do not have enough permissions to run this command.")
+                await self.responsem.respond(context, "You do not have enough permissions to run this command.")
                 return False
             # If a command affects another user, perform a hierarchy check
             if target:
@@ -33,11 +30,11 @@ class permmanager:
                     await self.responsem.respond(context, "User <@" + str(target.id) + "> has left the server.")
                     return False
                 if target.bot:
-                    await self.throwerror(context, "The target mustn't be a bot.")
+                    await self.responsem.respond(context, "The target mustn't be a bot.")
                     return False
                 targetuser_permissionlevel = self.getpermissionlevel(target)
                 if targetuser_permissionlevel >= inituser_permissionlevel:
-                    await self.throwerror(context, "The target user needs to be lower than your highest role.")
+                    await self.responsem.respond(context, "The target user needs to be lower than your highest role.")
                     return False
         except:
             return False

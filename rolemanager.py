@@ -78,7 +78,7 @@ class rolemanager:
             await target.add_roles(role, reason = modreason)
             await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
             await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
-            await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
+            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
             return role, timestamp, reason
         else:
             modreason = sanitizereason(author.name, reason = reason, removedrolename = role.name, duration = duration)
@@ -89,7 +89,7 @@ class rolemanager:
             await target.remove_roles(role, reason = modreason)
             await self.sqlm.removetemprole(target.id, role_type)
             await self.responsem.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".")
-            await self.logm.sendlog(self.logm.temproles, context, mode = self.logm.removerole, target = target, reason = reason, role = role)
+            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role)
             return role, False, reason
             
     async def role(self, context, target, role, reason):

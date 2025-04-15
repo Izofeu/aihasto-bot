@@ -565,7 +565,7 @@ async def timeout(context, target: discord.Option(
         if not canrun:
             return
         await context.defer(ephemeral = True)
-        await cmdm.timeout(context, target, duration, reason, isslash = True)
+        await cmdm.timeout(context, target, duration, reason)
         return
         
 @bot.slash_command(description = "Removes a user from a time-out with a reason.")
@@ -586,7 +586,7 @@ async def untimeout(context, target: discord.Option(
         if not canrun:
             return
         await context.defer(ephemeral = True)
-        await cmdm.timeout(context, target, duration = False, reason = reason, isslash = True, untimeout = True)
+        await cmdm.timeout(context, target, duration = False, reason = reason, untimeout = True)
         return
         
 @bot.slash_command(description = "Toggles Content creator for a user.")
