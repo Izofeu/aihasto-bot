@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, isvalidtime
+from extrafunctions import isemptyreason, isvalidtime, getauthor
 import datetime
 import discord
 import c_ui
@@ -12,14 +12,15 @@ class warns:
         self.sqlm = sql
         self.responsem = responsem
     
-    async def addwarn(self, context, target, reason, interaction = False):
+    async def addwarn(self, context, target, reason):
+        author = getauthor(context)
         expirydate = isvalidtime("3d")[0].strftime("%Y-%m-%d %H:%M:%S")
         modreason = isemptyreason(reason)
-        await self.sqlm.addwarning(context.author.id, target.id, expirydate, modreason)
-        await self.responsem.respond(context, self.responsem.s_addedwarning, target.id, modreason)
-        await self.logm.sendlog(self.logm.warns, context, mode = self.logm.addwarn, target = target, reason = modreason)
+        await self.sqlm.addwarning(author.id, target.id, expirydate, modreason)
+        await self.responsem.respond(context, "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + ".")
+        await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason)
         try:
-            await target.send("You have been issued a warning by <@" + str(context.author.id) + "> for " + modreason + ".")
+            await target.send("You have been issued a warning by <@" + str(author.id) + "> for " + modreason + ".")
         except:
             pass
         return

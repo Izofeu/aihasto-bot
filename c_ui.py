@@ -100,7 +100,6 @@ class warnui(discord.ui.Modal):
     async def callback(self, interaction: discord.Interaction):
         reason = self.children[0].value
         await self.addwarn(self.context, self.target, reason = reason, interaction = interaction)
-        #await interaction.response.send_message(message, ephemeral = True)
         return
         
 class editreasonui(discord.ui.Modal):
@@ -114,3 +113,85 @@ class editreasonui(discord.ui.Modal):
         reason = self.children[0].value
         await self.cmdm.editreason(interaction, self.message, reason)
         return
+        
+class newflooderui(discord.ui.Modal):
+    async def callback(self, interaction):
+        duration = self.children[0].value
+        reason = self.children[1].value
+        await self.rolem.temprole(interaction, self.target, self.rolem.addtemprole, self.rolem.flooderrole, duration = duration, reason = reason)
+        
+    def __init__(self, member, rolemanager):
+        super().__init__(title = "Issue flooder")
+        self.target = member
+        self.rolem = rolemanager
+        self.add_item(discord.ui.InputText(label = "Duration", value = "2d", required = True, max_length = 4))
+        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+        
+class newwarnui(discord.ui.Modal):
+    async def callback(self, interaction):
+        reason = self.children[0].value
+        await self.addwarn(interaction, self.target, reason = reason)
+        
+    def __init__(self, member, addwarn):
+        super().__init__(title = "Issue warn")
+        self.target = member
+        self.addwarn = addwarn
+        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+        
+class newtimeoutui(discord.ui.Modal):
+    async def callback(self, interaction):
+        duration = self.children[0].value
+        reason = self.children[1].value
+        await self.addtimeout(interaction, self.target, duration = duration, reason = reason)
+        
+    def setdefaultduration(self, duration):
+        self.add_item(discord.ui.InputText(label = "Duration", value = duration, required = True, max_length = 4))
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
+        
+    def __init__(self, target, addtimeout):
+        super().__init__(title = "Issue timeout")
+        self.target = target
+        self.addtimeout = addtimeout
+        
+class punishmentbuttons(discord.ui.View):
+    @discord.ui.button(label = "Warn", emoji = "⚠️", style = discord.ButtonStyle.primary)
+    async def addwarn_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        warnui = self.warnui
+        await interaction.response.send_modal(warnui)
+        
+    @discord.ui.button(label = "1h", emoji = "🔇", style = discord.ButtonStyle.primary)
+    async def timeout1h_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        timeoutui = self.timeoutui
+        timeoutui.setdefaultduration("1h")
+        await interaction.response.send_modal(timeoutui)
+        
+    @discord.ui.button(label = "24h", emoji = "🔇", style = discord.ButtonStyle.primary)
+    async def timeout24h_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        timeoutui = self.timeoutui
+        timeoutui.setdefaultduration("24h")
+        await interaction.response.send_modal(timeoutui)
+        
+    @discord.ui.button(label = "Flooder", emoji = "🌊", style = discord.ButtonStyle.primary)
+    async def addflooder_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        flooderui = self.flooderui
+        await interaction.response.send_modal(flooderui)
+        
+    async def disableallbuttons(self, interaction):
+        self.disable_all_items()
+        await self.hook.edit(view = self)
+        return
+    
+    def sethook(self, hook):
+        self.hook = hook
+        
+    def __init__(self, target, warnui, timeoutui, flooderui):
+        super().__init__()
+        self.target = target
+        self.warnui = warnui
+        self.timeoutui = timeoutui
+        self.flooderui = flooderui
+        self.hook = None

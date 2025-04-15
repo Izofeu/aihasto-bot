@@ -113,7 +113,7 @@ class logmanager:
             embed.color = discord.Colour.dark_gray()
             embed.description = reason
             embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
-            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
             if mode == self.addwarn:
                 embed.title = "Warn"
             elif mode == self.clearwarns:
@@ -132,25 +132,11 @@ class logmanager:
             embed.color = discord.Colour.green()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-            #log = ""
-            #if mode == self.noreason:
-                #log = "Caution! "
-            #try:
-            #    log += "User <@" + str(target) + "> (user id " + str(target) + " ) has been unbanned by " + context + " for " + reason + "."
-            #    logmessage = await self.uploadlog(log, context)
-                #if logmessage is None:
-                #    return
-                #id = logmessage.id
-                #message = log + "\nRun `/addunbanreason " + str(id) + " reason` to add an unban reason."
-                #await logmessage.edit(content = message)
-            #    return
-            #except:
-            #    return
         elif category == self.temproles:
             embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.dark_blue()
             embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
-            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
             if mode == self.addrole:
                 embed.title = "Add temprole"
                 embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)

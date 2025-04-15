@@ -17,7 +17,7 @@ class cmdmanager:
         self.logm = log
         self.responsem = responsemanager
         
-        self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log)
+        self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
@@ -63,17 +63,23 @@ class cmdmanager:
                 timediff = gettimedifferencestr(expirationdate, issuedate)
                 message += "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3]
                 
-        await self.responsem.respond(context, self.responsem.payload, payload = message)
+        addflooderui = c_ui.newflooderui(member, self.rolem)
+        addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout)
+        addwarnui = c_ui.newwarnui(member, self.warns.addwarn)
+        punishmentbuttons = c_ui.punishmentbuttons(member, addwarnui, addtimeoutui, addflooderui)
+        response = await self.responsem.respond(context, message, view = punishmentbuttons)
+        punishmentbuttons.sethook(response)
         return
         
-    async def temprole(self, context, target, mode, roletype, duration = False, reason = False, interaction = False):
-        role, timestamp, reason = await self.rolem.temprole(context, target, mode, roletype, duration = duration, reason = reason, interaction = interaction)
+    async def temprole(self, context, target, mode, roletype, duration = False, reason = False):
+        author = getauthor(context)
+        role, timestamp, reason = await self.rolem.temprole(context, target, mode, roletype, duration = duration, reason = reason)
         if not role:
             return
         if mode == self.rolem.addtemprole:
-            message = "You have been issued a " + role.name + " role by <@" + str(context.author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
+            message = "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
         else:
-            message = "You have been prematurely removed from a " + role.name + " role by <@" + str(context.author.id) + "> for " + reason + "."
+            message = "You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + "."
         try:
             await target.send(message)
         except:
@@ -84,11 +90,6 @@ class cmdmanager:
         await self.rolem.role(context, target, role, reason)
         return
         
-    async def openfloodermenu(self, context, target):
-        flooderui = c_ui.flooderui(context, target, self.rolem, self.temprole)
-        await context.send_modal(flooderui)
-        return
-        
     async def openeditreasonmenu(self, context, message):
         editreasonmenu = c_ui.editreasonui(message, self)
         await context.send_modal(editreasonmenu)
@@ -97,12 +98,12 @@ class cmdmanager:
     async def editreason(self, context, message, reason):
         author = getauthor(context)
         if not amiauthor(message, self.cfg.get("botid")):
-            await self.responsem.respond(context, self.responsem.e_messageauthornotbot)
+            await self.responsem.respond(context, "Only messages sent by me can be edited.")
             return
         try:
             embed = message.embeds[0]
         except:
-            await self.responsem.respond(context, self.responsem.e_messagenoembeds)
+            await self.responsem.respond(context, "This message doesn't have embeds.")
             return
         fields = embed.fields
         foundfield = alreadyedited = False
@@ -118,18 +119,18 @@ class cmdmanager:
                     if author.id != issuerid:
                         permlevel = self.pm.getpermissionlevel(author)
                         if permlevel < 3:
-                            await self.responsem.respond(context, self.responsem.e_messagenotauthorandnothand)
+                            await self.responsem.respond(context, "You are not the author of this punishment. Ask Mita's Arms for assistance.")
                             return
                 except:
-                    await self.responsem.respond(context, self.responsem.e_nopermissionembededit)
+                    await self.responsem.respond(context, "Couldn't fetch permissions for embed edit.")
                     return False
                 break
         if not foundfield:
-            await self.responsem.respond(context, self.responsem.e_noissuerfield)
+            await self.responsem.respond(context, "This message doesn't have an Issuer field so its reason cannot be edited.")
             return
         if alreadyedited:
             embed.remove_field(0)
         embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(author.id) + "> - " + isemptyreason(reason), inline = False)
         await self.logm.editembed(message, embed)
-        await self.responsem.respond(context, self.responsem.s_editedembed)
+        await self.responsem.respond(context, "Successfully edited the embed.")
         return

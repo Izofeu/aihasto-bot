@@ -50,7 +50,7 @@ responsem = responsemanager.responsemanager(cfg)
 pm = permmanager.permmanager(cfg, responsem)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot, sqlm)
-rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm)
+rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm, responsem)
 cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
 def isemptyreason(reason):

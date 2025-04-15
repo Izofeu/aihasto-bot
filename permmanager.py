@@ -30,7 +30,7 @@ class permmanager:
             # If a command affects another user, perform a hierarchy check
             if target:
                 if not isinstance(target, discord.Member):
-                    await self.responsem.respond(context, self.responsem.e_leftserver, target)
+                    await self.responsem.respond(context, "User <@" + str(target.id) + "> has left the server.")
                     return False
                 if target.bot:
                     await self.throwerror(context, "The target mustn't be a bot.")
