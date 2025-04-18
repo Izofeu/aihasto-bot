@@ -1,4 +1,4 @@
-from extrafunctions import discorddatetodateobject, isemptyreason, getutctimestamp
+from extrafunctions import discorddatetodateobject, isemptyreason, getutctimestamp, getauthor
 
 import discord
 import datetime
@@ -26,6 +26,7 @@ class logmanager:
         self.temproles = 9
         self.bans = 10
         self.kicks = 11
+        self.assignments = 12
         
         self.addrole = 1
         self.removerole = 2
@@ -36,6 +37,8 @@ class logmanager:
         self.selfclearwarns = 3
         
         self.removetimeout = 2
+        
+        self.removeassignments = 1
         
     def loadlogchannelid(self):
         self.logchannelid = self.cfg.get("logchannelid")
@@ -75,7 +78,7 @@ class logmanager:
             print(datetime.datetime.now())
             print(e)
         return
-    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False):
+    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False):
         embed = discord.Embed()
         if category == self.timeouts:
             embed.title = "Timeout add"
@@ -100,6 +103,17 @@ class logmanager:
                 embed.add_field(name = "Until", value = "<t:" + str(duration[1]) + ":F>", inline = False)
                 
                 await self.sqlm.addtimeout(target, context.id, date, reason)
+        elif category == self.assignments:
+            author = getauthor(context)
+            embed.title = "Assignment set"
+            log = "Assigned <@" + str(target) + "> to <@" + str(altauthor) + ">.\nReason: " + reason
+            embed.description = log
+            embed.color = discord.Colour.fuchsia()
+            embed.add_field(name = "Issuer", value = "<@" + str(author.id) + ">", inline = False)
+            if mode == self.removeassignments:
+                embed.title = "Assignment remove"
+                embed.description = "Removed <@" + str(target) + "> from <@" + str(altauthor) + ">."
+            
         elif category == self.roles:
             embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.magenta()

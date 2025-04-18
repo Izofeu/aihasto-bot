@@ -22,9 +22,11 @@ class notemanager:
         if type == self.assignnote:
             await self.sqlm.addnote_nodate(issuerid, targetid, self.t_assign, reason)
             await self.responsem.respond(context, "Assigned <@" + str(targetid) + "> to <@" + str(issuerid) + ">.")
+            await self.logm.sendlog(self.logm.assignments, context, target = targetid, reason = reason, altauthor = issuerid)
         elif type == self.unassignnote:
             await self.sqlm.removenote(issuerid, targetid, self.t_assign)
             await self.responsem.respond(context, "Removed <@" + str(targetid) + "> from <@" + str(issuerid) + ">.")
+            await self.logm.sendlog(self.logm.assignments, context, mode = self.logm.removeassignments, target = targetid, reason = reason, altauthor = issuerid)
         elif type == self.breaknote:
             pass
         return
