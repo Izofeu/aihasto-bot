@@ -40,7 +40,7 @@ class sqlmanager:
             except:
                 raise Exception("Couldn't connect to database.")
         return
-    async def query(self, query, params = False, maintainconnection = False, connect = True, nolock = False):
+    async def query(self, query, params = False, maintainconnection = False, connect = True):
         if connect:
             await self.lock.acquire()
         try:
@@ -56,7 +56,7 @@ class sqlmanager:
                 "`account_id` varchar(40) NOT NULL," +
                 "`issuer_id` varchar(40) NOT NULL," +
                 "`expiration_date` DATETIME NOT NULL," +
-                "`reason` VARCHAR(512) NOT NULL," +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided.'," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
@@ -70,7 +70,7 @@ class sqlmanager:
                 "`expiration_date` DATETIME NOT NULL," +
                 "`issue_date` DATETIME NOT NULL DEFAULT '2025-01-01 00:00:00'," +
                 "`role_type` INT NOT NULL," +
-                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided.'," +
                 "`removed` BOOL NOT NULL DEFAULT 0," +
                 "PRIMARY KEY (id)" +
                 ");"
@@ -84,7 +84,21 @@ class sqlmanager:
                 "`issuer_id` varchar(40) NOT NULL DEFAULT '0'," +
                 "`expiration_date` DATETIME NOT NULL," +
                 "`issue_date` DATETIME NOT NULL DEFAULT '2025-01-01 00:00:00'," +
-                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided or ported punishment.'," +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided.'," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `notes`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL DEFAULT '0'," +
+                "`expiration_date` DATETIME NULL," +
+                "`issue_date` DATETIME NULL," +
+                "`reason` VARCHAR(512) NULL DEFAULT 'No reason provided.'," +
+                "`notetype` INT NOT NULL," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
@@ -106,6 +120,38 @@ class sqlmanager:
             if not maintainconnection:
                 self.lock.release()
         return result
+    
+    async def getnotesbytarget(self, id, notetype):
+        query = "SELECT issuer_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)
+        notes = await self.query(query, maintainconnection = True)
+        query = "SELECT COUNT(id) FROM `notes` WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)
+        count = await self.query(query, maintainconnection = False, connect = False)
+        return count[0][0], notes
+        
+    async def getnotesbyissuer(self, id, notetype):
+        query = "SELECT account_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND issuer_id = " + str(id)
+        notes = await self.query(query, maintainconnection = True)
+        query = "SELECT COUNT(id) FROM `notes` WHERE notetype = " + str(notetype) + " AND issuer_id = " + str(id)
+        count = await self.query(query, maintainconnection = False, connect = False)
+        return count[0][0], notes
+    
+    async def addnote_nodate(self, id, issuer_id, notetype, reason):
+        query = "INSERT INTO `notes` (account_id, issuer_id, reason, notetype) VALUES (" + str(id) + ", " + str(issuer_id) + ", %s, " + str(notetype) + ")"
+        await self.query(query, [reason])
+        return
+        
+    async def addnote_date(self, id, issuer_id, notetype, issuedate, expirydate, reason):
+        query = (
+        "INSERT INTO `notes` (account_id, issuer_id, expiration_date, issue_date, reason, notetype) VALUES (" +
+        str(id) + ", " + str(issuer_id) + ", '" + expirydate + "', '" + issuedate + "', %s, " + str(notetype) + ")"
+        )
+        await self.query(query, [reason])
+        return
+        
+    async def removenote(self, id, issuer_id, notetype):
+        query = "DELETE FROM `notes` WHERE account_id = " + str(id) + " AND issuer_id = " + str(issuer_id) + " AND notetype = " + str(notetype)
+        await self.query(query)
+        return
     
     async def addtimeout(self, id, issuer_id, duration, reason):
         query = (

@@ -7,7 +7,7 @@ class permmanager:
         self.cfg = cfg
         self.responsem = responsem
         
-    async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False):
+    async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False, useroverride = False):
         # This method checks if a member has permission to run a command.
         # The permissions involve two checks:
         # If a command is a general command that doesn't affect a specific user then
@@ -18,7 +18,7 @@ class permmanager:
         try:
             # If permission level isn't set by us, return false
             if commandpermissionlevel == -1:
-                raise PermissionException
+                raise Exception("Command permission level not set.")
             # Check permission level of the user who ran the command
             inituser_permissionlevel = self.getpermissionlevel(member)
             if inituser_permissionlevel < commandpermissionlevel:
@@ -27,6 +27,8 @@ class permmanager:
             # If a command affects another user, perform a hierarchy check
             if target:
                 if not isinstance(target, discord.Member):
+                    if useroverride:
+                        return True
                     await self.responsem.respond(context, "User <@" + str(target.id) + "> has left the server.")
                     return False
                 if target.bot:

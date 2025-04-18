@@ -95,3 +95,6 @@ def gettimedifferencestr(date1, date2):
     if hours == 0:
         timediff = "<1 hour"
     return timediff
+    
+def getdatefordb():
+    return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")

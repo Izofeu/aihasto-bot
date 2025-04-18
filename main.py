@@ -12,7 +12,7 @@ import commandmanager
 import rolemanager
 import c_ui
 import responsemanager
-from extrafunctions import getutctimestamp
+from extrafunctions import getutctimestamp, isemptyreason, sanitizereason, isvalidtime
 
 messagecache = []
 recentunbans = []
@@ -53,58 +53,7 @@ logm = logmanager.logmanager(cfg, bot, sqlm)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm, responsem)
 cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
-def isemptyreason(reason):
-    if not reason:
-        reason = "No reason provided."
-    return reason[:511]
 
-def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False, unban = False):
-    finalreason = "Responsible user: " + author
-    if addedrolename:
-        finalreason += ", Added role: " + addedrolename
-    if removedrolename:
-        finalreason += ", Removed role: " + removedrolename
-    if unban:
-        finalreason += ", Action: Unban"
-    if duration:
-        finalreason += ", Duration: " + duration
-    if reason:
-        finalreason = finalreason + ", Reason: " + reason
-    finalreason = finalreason[:511]
-    return finalreason
-
-# Check if duration inputted by user in commands is valid
-def isvalidtime(time, maxduration = 14):
-    try:
-        # Time format should be a number followed by a letter like minute, hour, day
-        timeunit = time[-1:]
-        timeduration = time[:-1]
-        timeduration = int(timeduration)
-        if timeunit not in ["m", "h", "d"]:
-            raise InvalidUnit
-        # Duration cannot be negative
-        if timeduration <= 0:
-            raise InvalidDuration
-        # Maximum of 14 days allowed, Discord's limitation for timeouts is 28 days
-        if (timeunit == "d" and timeduration > maxduration) or (
-        timeunit == "h" and timeduration > (maxduration * 24)) or (
-        timeunit == "m" and timeduration > (maxduration * 24 * 60)):
-            raise Exception("Invalid duration.")
-        # Returns a datetime object if time is valid
-        date = datetime.datetime.now(datetime.UTC)
-        # Calculate the time when a punishment should end
-        if timeunit == "m":
-            date = date + datetime.timedelta(minutes = timeduration)
-        elif timeunit == "h":
-            date = date + datetime.timedelta(hours = timeduration)
-        elif timeunit == "d":
-            date = date + datetime.timedelta(days = timeduration)
-        return date
-    # If anything went wrong, report an incorrect date
-    except:
-        return False
-    return False
-    
 @bot.event
 async def on_raw_audit_log_entry(entry):
     await logm.parserawauditlogentry(entry, recentunbans, recenttimeouts)
@@ -290,6 +239,56 @@ async def showpunishments(context, member: discord.Member):
         return
     await cmdm.showpunishmenthistory(context, member)
     return
+    
+@bot.slash_command(description = "Assigns a moderator to another moderator.")
+@guild_only()
+async def assign(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to assign to an assigner."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Additional notes about the moderator, such as what channels they're responsible for."),
+    assigner: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = False,
+    description = "Who to assign the moderator to. Leave empty to assign to yourself.")
+    ):
+        # Perm check in cmdm due to added complexity depending on args
+        await cmdm.assign(context, target, assigner, reason)
+        return
+        
+@bot.slash_command(description = "Unassigns a moderator from another moderator.")
+@guild_only()
+async def unassign(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to remove an assignment from."),
+    assigner: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = False,
+    description = "Who to remove the assignment from. Leave empty to remove from yourself.")
+    ):
+        # Perm check in cmdm due to added complexity depending on args
+        await cmdm.assign(context, target, assigner, remove = True)
+        return
+        
+@bot.slash_command(description = "Displays moderators who are assigned to a moderator.")
+@guild_only()
+async def showassigns(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Moderator to show the assignments of.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.showassigner(context, target)
+        return
     
 @bot.slash_command(description = "Adds Mr Mustard to a user for 24 hours.")
 @guild_only()

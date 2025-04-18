@@ -5,6 +5,7 @@ import g_slowmodes
 import discord
 import c_ui
 import datetime
+import notemanager
 
 class cmdmanager:
     def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager):
@@ -16,6 +17,7 @@ class cmdmanager:
         self.rolem = rolemanager
         self.logm = log
         self.responsem = responsemanager
+        self.notem = notemanager.notemanager(cfg, sql, responsemanager, log)
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
@@ -133,4 +135,24 @@ class cmdmanager:
         embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(author.id) + "> - " + isemptyreason(reason), inline = False)
         await self.logm.editembed(message, embed)
         await self.responsem.respond(context, "Successfully edited the embed.")
+        return
+        
+    async def assign(self, context, target, assigner = False, reason = False, remove = False):
+        author = getauthor(context)
+        commandpermissionlevel = 2
+        if assigner:
+            commandpermissionlevel = 4
+        canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True)
+        if not canrun:
+            return
+        if assigner:
+            author = assigner
+        if remove:
+            await self.notem.assign(context, author.id, target.id, self.notem.unassignnote)
+        else:
+            await self.notem.assign(context, author.id, target.id, self.notem.assignnote, reason)
+        return
+        
+    async def showassigner(self, context, target):
+        await self.notem.getnote(context, target, self.notem.t_assign)
         return
