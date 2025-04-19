@@ -51,15 +51,15 @@ class notemanager:
             else:
                 message += "<@" + str(target.id) + "> has " + str(countassignees) + " child moderators:\n"
                 for shoulder in assigneeinfo:
-                    message += "**\\| -**<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
+                    message += "🟥<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
                     # Example arm-hand
                     countassigneesarm, assigneeinfoarm = await self.sqlm.getnotesbytarget(shoulder[0], self.t_assign)
                     for arm in assigneeinfoarm:
-                        message += "**\\| \\| -**<@" + str(arm[0]) + "> - " + str(arm[3]) + "\n"
+                        message += "🟥🟩<@" + str(arm[0]) + "> - " + str(arm[3]) + "\n"
                         # Example hand-puppet
                         countassigneeshand, assigneeinfohand = await self.sqlm.getnotesbytarget(arm[0], self.t_assign)
                         for hand in assigneeinfohand:
-                            message += "**\\| \\| \\| -**<@" + str(hand[0]) + "> - " + str(hand[3]) + "\n"
+                            message += "🟥🟩🟦<@" + str(hand[0]) + "> - " + str(hand[3]) + "\n"
                     
                     
             await self.responsem.respond(context, message)
