@@ -137,10 +137,10 @@ class cmdmanager:
         await self.responsem.respond(context, "Successfully edited the embed.")
         return
         
-    async def assign(self, context, target, assigner = False, reason = False, remove = False):
+    async def assign(self, context, target, assigner = False, reason = False, remove = False, root = False):
         author = getauthor(context)
         commandpermissionlevel = 2
-        if assigner:
+        if assigner or root:
             commandpermissionlevel = 4
         canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True)
         if not canrun:
@@ -150,7 +150,7 @@ class cmdmanager:
         if remove:
             await self.notem.assign(context, author.id, target.id, self.notem.unassignnote)
         else:
-            await self.notem.assign(context, author.id, target.id, self.notem.assignnote, reason)
+            await self.notem.assign(context, author.id, target.id, self.notem.assignnote, reason, root)
         return
         
     async def showassigner(self, context, target):

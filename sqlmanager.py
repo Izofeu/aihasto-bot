@@ -126,6 +126,11 @@ class sqlmanager:
         query = "SELECT DISTINCT account_id FROM notes WHERE notetype = " + str(notetype) + " AND isroot = 1"
         rootinfo = await self.query(query)
         return rootinfo
+        
+    async def getallassigns(self, notetype):
+        query = "SELECT account_id, issuer_id FROM notes WHERE notetype = " + str(notetype)
+        assigns = await self.query(query)
+        return assigns
     
     async def getnotesbytarget(self, id, notetype):
         query = "SELECT issuer_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)
@@ -141,8 +146,8 @@ class sqlmanager:
         count = await self.query(query, maintainconnection = False, connect = False)
         return count[0][0], notes
     
-    async def addnote_nodate(self, id, issuer_id, notetype, reason):
-        query = "INSERT INTO `notes` (account_id, issuer_id, reason, notetype) VALUES (" + str(id) + ", " + str(issuer_id) + ", %s, " + str(notetype) + ")"
+    async def addnote_nodate(self, id, issuer_id, notetype, reason, root):
+        query = "INSERT INTO `notes` (account_id, issuer_id, reason, notetype, isroot) VALUES (" + str(id) + ", " + str(issuer_id) + ", %s, " + str(notetype) + ", " + str(root) + ")"
         await self.query(query, [reason])
         return
         

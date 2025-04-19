@@ -253,10 +253,14 @@ async def assign(context, target: discord.Option(
     assigner: discord.Option(
     discord.SlashCommandOptionType.user,
     required = False,
-    description = "Who to assign the moderator to. Leave empty to assign to yourself.")
+    description = "Who to assign the moderator to. Leave empty to assign to yourself."),
+    root: discord.Option(
+    discord.SlashCommandOptionType.boolean,
+    required = False,
+    description = "Is the executor of this command a top level user (Shoulder)?")
     ):
         # Perm check in cmdm due to added complexity depending on args
-        await cmdm.assign(context, target, assigner, reason)
+        await cmdm.assign(context, target, assigner, reason, remove = False, root = False if root is None else True)
         return
         
 @bot.slash_command(description = "Unassigns a moderator from another moderator.")

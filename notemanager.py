@@ -15,12 +15,14 @@ class notemanager:
         self.t_assign = 1
         self.t_break = 2
         
-    async def assign(self, context, issuerid, targetid, type, reason = False):
+        self.alldata = None
+        
+    async def assign(self, context, issuerid, targetid, type, reason = False, root = False):
         issuedate = getdatefordb()
         timestamp = getutctimestamp()
         reason = isemptyreason(reason)
         if type == self.assignnote:
-            await self.sqlm.addnote_nodate(issuerid, targetid, self.t_assign, reason)
+            await self.sqlm.addnote_nodate(issuerid, targetid, self.t_assign, reason, root)
             await self.responsem.respond(context, "Assigned <@" + str(targetid) + "> to <@" + str(issuerid) + ">.")
             await self.logm.sendlog(self.logm.assignments, context, target = targetid, reason = reason, altauthor = issuerid)
         elif type == self.unassignnote:
@@ -32,24 +34,37 @@ class notemanager:
         return
     
     async def generatetree(self, context):
+        def getfromalldata(userid):
+            array = []
+            for id in self.alldata:
+                #[0] - account_id
+                #[1] - issuer_id
+                if str(id[0]) == str(userid):
+                    array.append(id[1])
+            return array
+        async def addtomessage(message, append):
+            if len(message) + len(append) > 1999:
+                await self.responsem.respond(context, message)
+                return append
+            return message + append
+        async def recursiontree(userid, message, depth = 1):
+            if depth > 6:
+                return ""
+            assigneeinfo = getfromalldata(userid)
+            emojis = "🟥🟩🟦🟨🟪⬛"
+            for assignees in assigneeinfo:
+                message = await addtomessage(message, emojis[:depth] + "<@" + str(assignees) + ">\n")
+                message = await recursiontree(assignees, message, (depth + 1))
+            return message
         rootinfo = await self.sqlm.getroot(self.t_assign)
         message = ""
+        self.alldata = await self.sqlm.getallassigns(self.t_assign)
         for root in rootinfo:
             message += "<@" + str(root[0]) + ">:\n"
-            countassignees, assigneeinfo = await self.sqlm.getnotesbytarget(root[0], self.t_assign)
-            for shoulder in assigneeinfo:
-                message += "🟥<@" + str(shoulder[0]) + ">\n"
-                # Example arm-hand
-                countassigneesarm, assigneeinfoarm = await self.sqlm.getnotesbytarget(shoulder[0], self.t_assign)
-                for arm in assigneeinfoarm:
-                    message += "🟥🟩<@" + str(arm[0]) + ">\n"
-                    # Example hand-puppet
-                    countassigneeshand, assigneeinfohand = await self.sqlm.getnotesbytarget(arm[0], self.t_assign)
-                    for hand in assigneeinfohand:
-                        message += "🟥🟩🟦<@" + str(hand[0]) + ">\n"
-            message += "\n"
+            message += await recursiontree(root[0], "")
         if not message:
-            message = "No tree to display."
+            message = "No tree to display (no root assigns)."
+        self.alldata = None
         await self.responsem.respond(context, message)
         return
     
@@ -65,7 +80,7 @@ class notemanager:
             else:
                 message += "<@" + str(targetid) + "> has " + str(countassigners) + " parent moderators:\n"
                 for info in assignerinfo:
-                    message += "<@" + str(info[0]) + ">"
+                    message += "<@" + str(info[0]) + "> assigned the following tasks to <@" + str(info[0]) + ">: " + str(info[3]) + "\n"
             message += "\n"
             # Assignees (example shoulder-arm)
             if countassignees == 0:
@@ -73,7 +88,7 @@ class notemanager:
             else:
                 message += "<@" + str(targetid) + "> has " + str(countassignees) + " child moderators:\n"
                 for shoulder in assigneeinfo:
-                    message += "<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
+                    message += "<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + ""
 
             await self.responsem.respond(context, message)
         elif type == self.t_break:
