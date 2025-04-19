@@ -43,7 +43,7 @@ class notemanager:
                     array.append(id[1])
             return array
         async def addtomessage(message, append):
-            if len(message) + len(append) > 1999:
+            if (len(message) + len(append)) > 1200:
                 await self.responsem.respond(context, message)
                 return append
             return message + append
@@ -53,15 +53,15 @@ class notemanager:
             assigneeinfo = getfromalldata(userid)
             emojis = "🟥🟩🟦🟨🟪⬛"
             for assignees in assigneeinfo:
-                message = await addtomessage(message, emojis[:depth] + "<@" + str(assignees) + ">\n")
+                message = await addtomessage(message, (emojis[:depth] + "<@" + str(assignees) + ">\n"))
                 message = await recursiontree(assignees, message, (depth + 1))
             return message
         rootinfo = await self.sqlm.getroot(self.t_assign)
         message = ""
         self.alldata = await self.sqlm.getallassigns(self.t_assign)
         for root in rootinfo:
-            message += "<@" + str(root[0]) + ">:\n"
-            message += await recursiontree(root[0], "")
+            message += "\n<@" + str(root[0]) + ">:\n"
+            message = await recursiontree(root[0], message)
         if not message:
             message = "No tree to display (no root assigns)."
         self.alldata = None
@@ -80,7 +80,7 @@ class notemanager:
             else:
                 message += "<@" + str(targetid) + "> has " + str(countassigners) + " parent moderators:\n"
                 for info in assignerinfo:
-                    message += "<@" + str(info[0]) + "> assigned the following tasks to <@" + str(info[0]) + ">: " + str(info[3]) + "\n"
+                    message += "<@" + str(info[0]) + "> assigned the following tasks to <@" + str(targetid) + ">: " + str(info[3]) + "\n"
             message += "\n"
             # Assignees (example shoulder-arm)
             if countassignees == 0:

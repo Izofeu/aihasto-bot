@@ -295,6 +295,7 @@ async def showassigns(context, target: discord.Option(
         return
     
 @bot.slash_command(description = "Generates a moderation tree.")
+@commands.cooldown(1, 20, commands.BucketType.user)
 @guild_only()
 async def modtree(context):
     # Command permission level
@@ -305,6 +306,15 @@ async def modtree(context):
         return
     await cmdm.generatemodtree(context)
     return
+    
+# Application command error handler
+@bot.event
+async def on_application_command_error(
+    context, error: discord.DiscordException):
+        if isinstance(error, commands.CommandOnCooldown):
+            await context.respond("This command is currently on cooldown.")
+        else:
+            raise error
     
 @bot.slash_command(description = "Adds Mr Mustard to a user for 24 hours.")
 @guild_only()
