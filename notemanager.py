@@ -49,7 +49,7 @@ class notemanager:
             return message + append
         async def recursiontree(userid, message, depth = 1):
             if depth > 6:
-                return ""
+                return message
             assigneeinfo = getfromalldata(userid)
             emojis = "🟥🟩🟦🟨🟪⬛"
             for assignees in assigneeinfo:

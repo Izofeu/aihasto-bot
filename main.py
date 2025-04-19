@@ -257,7 +257,7 @@ async def assign(context, target: discord.Option(
     root: discord.Option(
     discord.SlashCommandOptionType.boolean,
     required = False,
-    description = "Is the executor of this command a top level user (Shoulder)?")
+    description = "Is the assigner a top level user (Shoulder)?")
     ):
         # Perm check in cmdm due to added complexity depending on args
         await cmdm.assign(context, target, assigner, reason, remove = False, root = False if root is None else True)
@@ -312,7 +312,7 @@ async def modtree(context):
 async def on_application_command_error(
     context, error: discord.DiscordException):
         if isinstance(error, commands.CommandOnCooldown):
-            await context.respond("This command is currently on cooldown.")
+            await context.respond("This command is currently on cooldown.", ephemeral = True)
         else:
             raise error
     
