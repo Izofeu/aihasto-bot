@@ -142,7 +142,7 @@ class cmdmanager:
         commandpermissionlevel = 2
         if assigner or root:
             commandpermissionlevel = 4
-        canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True)
+        canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True, shoulderoverride = True)
         if not canrun:
             return
         if assigner:

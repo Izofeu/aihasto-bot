@@ -88,7 +88,7 @@ class notemanager:
             else:
                 message += "<@" + str(targetid) + "> has " + str(countassignees) + " child moderators:\n"
                 for shoulder in assigneeinfo:
-                    message += "<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + ""
+                    message += "<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
 
             await self.responsem.respond(context, message)
         elif type == self.t_break:
