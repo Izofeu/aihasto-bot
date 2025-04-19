@@ -154,5 +154,9 @@ class cmdmanager:
         return
         
     async def showassigner(self, context, target):
-        await self.notem.getnote(context, target, self.notem.t_assign)
+        await self.notem.getnote(context, target.id, self.notem.t_assign)
+        return
+        
+    async def generatemodtree(self, context):
+        await self.notem.generatetree(context)
         return

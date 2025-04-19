@@ -99,6 +99,7 @@ class sqlmanager:
                 "`issue_date` DATETIME NULL," +
                 "`reason` VARCHAR(512) NULL DEFAULT 'No reason provided.'," +
                 "`notetype` INT NOT NULL," +
+                "`isroot` BOOLEAN NOT NULL DEFAULT 0," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
@@ -120,6 +121,11 @@ class sqlmanager:
             if not maintainconnection:
                 self.lock.release()
         return result
+    
+    async def getroot(self, notetype):
+        query = "SELECT DISTINCT account_id FROM notes WHERE notetype = " + str(notetype) + " AND isroot = 1"
+        rootinfo = await self.query(query)
+        return rootinfo
     
     async def getnotesbytarget(self, id, notetype):
         query = "SELECT issuer_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)

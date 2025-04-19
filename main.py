@@ -290,6 +290,18 @@ async def showassigns(context, target: discord.Option(
         await cmdm.showassigner(context, target)
         return
     
+@bot.slash_command(description = "Generates a moderation tree.")
+@guild_only()
+async def modtree(context):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.generatemodtree(context)
+    return
+    
 @bot.slash_command(description = "Adds Mr Mustard to a user for 24 hours.")
 @guild_only()
 async def addmustard(context, target: discord.Option(

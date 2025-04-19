@@ -30,38 +30,51 @@ class notemanager:
         elif type == self.breaknote:
             pass
         return
-        
-    async def getnote(self, context, target, type):
+    
+    async def generatetree(self, context):
+        rootinfo = await self.sqlm.getroot(self.t_assign)
+        message = ""
+        for root in rootinfo:
+            message += "<@" + str(root[0]) + ">:\n"
+            countassignees, assigneeinfo = await self.sqlm.getnotesbytarget(root[0], self.t_assign)
+            for shoulder in assigneeinfo:
+                message += "🟥<@" + str(shoulder[0]) + ">\n"
+                # Example arm-hand
+                countassigneesarm, assigneeinfoarm = await self.sqlm.getnotesbytarget(shoulder[0], self.t_assign)
+                for arm in assigneeinfoarm:
+                    message += "🟥🟩<@" + str(arm[0]) + ">\n"
+                    # Example hand-puppet
+                    countassigneeshand, assigneeinfohand = await self.sqlm.getnotesbytarget(arm[0], self.t_assign)
+                    for hand in assigneeinfohand:
+                        message += "🟥🟩🟦<@" + str(hand[0]) + ">\n"
+            message += "\n"
+        if not message:
+            message = "No tree to display."
+        await self.responsem.respond(context, message)
+        return
+    
+    async def getnote(self, context, targetid, type):
         author = getauthor(context)
         if type == self.t_assign:
-            countassigners, assignerinfo = await self.sqlm.getnotesbyissuer(target.id, self.t_assign)
-            countassignees, assigneeinfo = await self.sqlm.getnotesbytarget(target.id, self.t_assign)
+            countassigners, assignerinfo = await self.sqlm.getnotesbyissuer(targetid, self.t_assign)
+            countassignees, assigneeinfo = await self.sqlm.getnotesbytarget(targetid, self.t_assign)
             message = ""
             # Assigners
             if countassigners == 0:
-                message += "<@" + str(target.id) + "> doesn't have any parent moderators.\n"
+                message += "<@" + str(targetid) + "> doesn't have any parent moderators.\n"
             else:
-                message += "<@" + str(target.id) + "> has " + str(countassigners) + " parent moderators:\n"
+                message += "<@" + str(targetid) + "> has " + str(countassigners) + " parent moderators:\n"
                 for info in assignerinfo:
-                    message += "<@" + str(info[0]) + "> - " + str(info[3]) + "\n"
+                    message += "<@" + str(info[0]) + ">"
             message += "\n"
             # Assignees (example shoulder-arm)
             if countassignees == 0:
-                message += "<@" + str(target.id) + "> doesn't have any child moderators.\n"
+                message += "<@" + str(targetid) + "> doesn't have any child moderators.\n"
             else:
-                message += "<@" + str(target.id) + "> has " + str(countassignees) + " child moderators:\n"
+                message += "<@" + str(targetid) + "> has " + str(countassignees) + " child moderators:\n"
                 for shoulder in assigneeinfo:
-                    message += "🟥<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
-                    # Example arm-hand
-                    countassigneesarm, assigneeinfoarm = await self.sqlm.getnotesbytarget(shoulder[0], self.t_assign)
-                    for arm in assigneeinfoarm:
-                        message += "🟥🟩<@" + str(arm[0]) + "> - " + str(arm[3]) + "\n"
-                        # Example hand-puppet
-                        countassigneeshand, assigneeinfohand = await self.sqlm.getnotesbytarget(arm[0], self.t_assign)
-                        for hand in assigneeinfohand:
-                            message += "🟥🟩🟦<@" + str(hand[0]) + "> - " + str(hand[3]) + "\n"
-                    
-                    
+                    message += "<@" + str(shoulder[0]) + "> - " + str(shoulder[3]) + "\n"
+
             await self.responsem.respond(context, message)
         elif type == self.t_break:
             pass
