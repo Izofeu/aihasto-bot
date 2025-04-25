@@ -16,10 +16,10 @@ class warns:
         author = getauthor(context)
         expirydate = isvalidtime("3d")[0].strftime("%Y-%m-%d %H:%M:%S")
         modreason = isemptyreason(reason)
-        await self.sqlm.addwarning(author.id, target.id, expirydate, modreason)
+        caseid = await self.sqlm.addwarning(author.id, target.id, expirydate, modreason)
         dmsuccess = await self.responsem.dm(target, "You have been issued a warning by <@" + str(author.id) + "> for " + modreason + ".")
         await self.responsem.respond(context, "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + ".", dmsuccess = dmsuccess)
-        await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason)
+        await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason, caseid = caseid)
         return
         
     async def clearwarns(self, context, target, reason):

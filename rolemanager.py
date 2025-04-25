@@ -76,10 +76,10 @@ class rolemanager:
                 return False, False, False
             date = date.strftime("%Y-%m-%d %H:%M:%S")
             await target.add_roles(role, reason = modreason)
-            await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
+            rowid = await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
             dmsuccess = await self.responsem.dm(target, "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
             await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
-            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
+            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role, caseid = rowid)
             return role, timestamp, reason
         else:
             modreason = sanitizereason(author.name, reason = reason, removedrolename = role.name, duration = duration)

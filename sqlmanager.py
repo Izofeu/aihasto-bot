@@ -112,6 +112,7 @@ class sqlmanager:
                 await self.cur.execute(query)
             # Fetch the result of a query
             result = await self.cur.fetchall()
+            rowid = self.cur.lastrowid
             if not maintainconnection:
                 await self.cur.close()
                 # Close connection
@@ -120,30 +121,45 @@ class sqlmanager:
         finally:
             if not maintainconnection:
                 self.lock.release()
-        return result
+        return result, rowid
+    
+    async def updatewarnreason(self, caseid, reason):
+        query = "UPDATE `warns` SET reason = %s WHERE id = " + caseid
+        await self.query(query, [reason])
+        return
+        
+    async def updatetimeoutreason(self, caseid, reason):
+        query = "UPDATE `timeouts` SET reason = %s WHERE id = " + caseid
+        await self.query(query, [reason])
+        return
+        
+    async def updatetemprolereason(self, caseid, reason):
+        query = "UPDATE `temproles` SET reason = %s WHERE id = " + caseid
+        await self.query(query, [reason])
+        return
     
     async def getroot(self, notetype):
         query = "SELECT DISTINCT account_id FROM notes WHERE notetype = " + str(notetype) + " AND isroot = 1"
-        rootinfo = await self.query(query)
+        rootinfo, rowid = await self.query(query)
         return rootinfo
         
     async def getallassigns(self, notetype):
         query = "SELECT account_id, issuer_id FROM notes WHERE notetype = " + str(notetype)
-        assigns = await self.query(query)
+        assigns, rowid = await self.query(query)
         return assigns
     
     async def getnotesbytarget(self, id, notetype):
         query = "SELECT issuer_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)
-        notes = await self.query(query, maintainconnection = True)
+        notes, rowid = await self.query(query, maintainconnection = True)
         query = "SELECT COUNT(id) FROM `notes` WHERE notetype = " + str(notetype) + " AND account_id = " + str(id)
-        count = await self.query(query, maintainconnection = False, connect = False)
+        count, rowid = await self.query(query, maintainconnection = False, connect = False)
         return count[0][0], notes
         
     async def getnotesbyissuer(self, id, notetype):
         query = "SELECT account_id, expiration_date, issue_date, reason FROM notes WHERE notetype = " + str(notetype) + " AND issuer_id = " + str(id)
-        notes = await self.query(query, maintainconnection = True)
+        notes, rowid = await self.query(query, maintainconnection = True)
         query = "SELECT COUNT(id) FROM `notes` WHERE notetype = " + str(notetype) + " AND issuer_id = " + str(id)
-        count = await self.query(query, maintainconnection = False, connect = False)
+        count, rowid = await self.query(query, maintainconnection = False, connect = False)
         return count[0][0], notes
     
     async def addnote_nodate(self, id, issuer_id, notetype, reason, root):
@@ -169,8 +185,8 @@ class sqlmanager:
         "INSERT INTO `timeouts` (account_id, issuer_id, expiration_date, issue_date, reason) VALUES (" +
         str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', '" + datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S") + "', %s);"
         )
-        await self.query(query, [reason])
-        return
+        _, rowid = await self.query(query, [reason])
+        return rowid
         
     async def removetimeout(self, id):
         query = "DELETE FROM `timeouts` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1;"
@@ -180,23 +196,14 @@ class sqlmanager:
     async def addtemprole(self, id, issuer_id, duration, role_type, reason = False):
         # Prepare the query for adding a temprole record
         query = "UPDATE `temproles` SET removed = 1 WHERE account_id = " + str(id) + " AND role_type = " + str(role_type) + ";"
-        await self.query(query)
-        if reason:
-            query = (
-            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `issue_date`, `role_type`, `reason`) VALUES (" +
-            str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', '" + datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S") + "', " + str(role_type) + ", %s" +
-            ");"
-            )
-            await self.query(query, [reason])
-            return
-        else:
-            query = (
-            "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `role_type`) VALUES (" +
-            str(id) + ", '" + str(duration) + "', " + str(role_type) +
-            ");"
-            )
-        await self.query(query)
-        return
+        await self.query(query, maintainconnection = True)
+        query = (
+        "INSERT INTO `temproles` (`account_id`, `issuer_id`, `expiration_date`, `issue_date`, `role_type`, `reason`) VALUES (" +
+        str(id) + ", " + str(issuer_id) + ", '" + str(duration) + "', '" + datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S") + "', " + str(role_type) + ", %s" +
+        ");"
+        )
+        _, rowid = await self.query(query, [reason], connect = False, maintainconnection = False)
+        return rowid
         
     async def removetemprole(self, id, role_type):
         query = "DELETE FROM `temproles` WHERE removed = 0 AND account_id = " + str(id) + " AND role_type = " + str(role_type) + ";"
@@ -206,7 +213,7 @@ class sqlmanager:
     async def getexpiredtemproles(self, currentdate):
         # Get all expired temp roles
         query = "SELECT `account_id`, `role_type` FROM `temproles` WHERE removed = 0 AND expiration_date < '" + currentdate + "';"
-        result = await self.query(query)
+        result, rowid = await self.query(query)
         return result
         
     async def markexpiredtemprolesasremoved(self, currentdate):
@@ -222,8 +229,8 @@ class sqlmanager:
     async def addwarning(self, issuerid, id, expirydate, reason):
         query = ("INSERT INTO `warns` (`account_id`, `issuer_id`, `expiration_date`, `reason`) VALUES (" +
         str(id) + ", " + str(issuerid) + ", '" + str(expirydate) + "', %s);")
-        await self.query(query, [reason])
-        return
+        _, rowid = await self.query(query, [reason])
+        return rowid
         
     async def removewarnings(self, id, issuerid = False):
         query = "DELETE FROM `warns` WHERE account_id = " + str(id) + ";"
@@ -240,30 +247,30 @@ class sqlmanager:
     async def getflooders(self, id):
         # Gets executed 1st
         query = "SELECT issuer_id, issue_date, reason FROM `temproles` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
-        result = await self.query(query, maintainconnection = True)
+        result, rowid = await self.query(query, maintainconnection = True)
         query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + ";"
-        count = await self.query(query, maintainconnection = True, connect = False)
+        count, rowid = await self.query(query, maintainconnection = True, connect = False)
         return count[0][0], result
         
     async def getwarnings(self, id):
         # Gets executed 2nd
         query = "SELECT issuer_id, expiration_date, reason FROM `warns` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 5;"
-        result = await self.query(query, maintainconnection = True, connect = False)
+        result, rowid = await self.query(query, maintainconnection = True, connect = False)
         query = "SELECT COUNT(id) FROM `warns` WHERE account_id = " + str(id) + ";"
-        count = await self.query(query, maintainconnection = True, connect = False)
+        count, rowid = await self.query(query, maintainconnection = True, connect = False)
         return count[0][0], result
         
     async def gettimeouts(self, id):
         # Gets executed 3rd, closes connection
         query = "SELECT issuer_id, expiration_date, issue_date, reason FROM `timeouts` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
-        result = await self.query(query, maintainconnection = True, connect = False)
+        result, rowid = await self.query(query, maintainconnection = True, connect = False)
         query = "SELECT COUNT(id) FROM `timeouts` WHERE account_id = " + str(id) + ";"
-        count = await self.query(query, maintainconnection = False, connect = False)
+        count, rowid = await self.query(query, maintainconnection = False, connect = False)
         return count[0][0], result
         
     async def isflooder(self, id):
         query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + " AND removed = 0 AND role_type = " + str(self.flooderrole) + ";"
-        result = await self.query(query)
+        result, rowid = await self.query(query)
         return int(result[0][0])
         
     async def getpunishments(self, id):

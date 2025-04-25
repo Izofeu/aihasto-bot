@@ -107,11 +107,14 @@ class cmdmanager:
         except:
             await self.responsem.respond(context, "This message doesn't have embeds.")
             return
+        title = embed.title
         fields = embed.fields
-        foundfield = alreadyedited = False
+        foundfield = alreadyedited = caseid = False
         for field in fields:
             if field.name == "Edited reason":
                 alreadyedited = True
+            elif field.name == "Case ID":
+                caseid = field.value
             elif field.name == "Issuer":
                 foundfield = field
                 issuerid = field.value
@@ -126,15 +129,25 @@ class cmdmanager:
                 except:
                     await self.responsem.respond(context, "Couldn't fetch permissions for embed edit.")
                     return False
-                break
         if not foundfield:
             await self.responsem.respond(context, "This message doesn't have an Issuer field so its reason cannot be edited.")
             return
         if alreadyedited:
             embed.remove_field(0)
         embed.insert_field_at(index = 0, name = "Edited reason", value = "<@" + str(author.id) + "> - " + isemptyreason(reason), inline = False)
+        responsemessage = "Successfully edited the embed."
+        if caseid:
+            if title == "Warn":
+                await self.sqlm.updatewarnreason(caseid, isemptyreason(reason))
+                responsemessage += " Edited the database record."
+            elif title == "Timeout add":
+                await self.sqlm.updatetimeoutreason(caseid, isemptyreason(reason))
+                responsemessage += " Edited the database record."
+            elif title == "Add temprole":
+                await self.sqlm.updatetemprolereason(caseid, isemptyreason(reason))
+                responsemessage += " Edited the database record."
         await self.logm.editembed(message, embed)
-        await self.responsem.respond(context, "Successfully edited the embed.")
+        await self.responsem.respond(context, responsemessage)
         return
         
     async def assign(self, context, target, assigner = False, reason = False, remove = False, root = False):

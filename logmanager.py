@@ -78,7 +78,7 @@ class logmanager:
             print(datetime.datetime.now())
             print(e)
         return
-    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False):
+    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False, caseid = None):
         embed = discord.Embed()
         if category == self.timeouts:
             embed.title = "Timeout add"
@@ -102,7 +102,8 @@ class logmanager:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
                 embed.add_field(name = "Until", value = "<t:" + str(duration[1]) + ":F>", inline = False)
                 
-                await self.sqlm.addtimeout(target, context.id, date, reason)
+                caseid = await self.sqlm.addtimeout(target, context.id, date, reason)
+                embed.add_field(name = "Case ID", value = str(caseid), inline = False)
         elif category == self.assignments:
             author = getauthor(context)
             embed.title = "Assignment set"
@@ -128,6 +129,7 @@ class logmanager:
             embed.description = reason
             embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             if mode == self.addwarn:
                 embed.title = "Warn"
             elif mode == self.clearwarns:
@@ -154,6 +156,7 @@ class logmanager:
             if mode == self.addrole:
                 embed.title = "Add temprole"
                 embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
+                embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             else:
                 embed.title = "Remove temprole"
         elif category == self.bans:
