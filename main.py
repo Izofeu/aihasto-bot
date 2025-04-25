@@ -143,7 +143,12 @@ async def on_message_delete(message):
     embed.title = "Message deleted"
     embed.color = discord.Colour.red()
     embed.description = "Message author: <@" + str(message.author.id) + ">, at <#" + str(message.channel.id) + ">"
-    embed.add_field(name = "Old message:", value = message.content, inline = False)
+    oldmessagetitle = "Old message:"
+    oldmessage = message.content
+    if len(oldmessage) > 1023:
+        oldmessage = oldmessage[:1023]
+        oldmessagetitle += " (trimmed)"
+    embed.add_field(name = oldmessagetitle, value = oldmessage, inline = False)
     attachmentlinks = ""
     for x in message.attachments:
         attachmentlinks += x.proxy_url + "\n"
@@ -326,7 +331,7 @@ async def addmustard(context, target: discord.Option(
         # Command permission level
         commandpermissionlevel = 2
         # Permission check
-        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel, shoulderoverride = True)
         if not canrun:
             return
         await context.defer(ephemeral = True)

@@ -77,7 +77,8 @@ class rolemanager:
             date = date.strftime("%Y-%m-%d %H:%M:%S")
             await target.add_roles(role, reason = modreason)
             await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
-            await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
+            dmsuccess = await self.responsem.dm(target, "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
+            await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role)
             return role, timestamp, reason
         else:
@@ -88,7 +89,8 @@ class rolemanager:
                 return False, False, False
             await target.remove_roles(role, reason = modreason)
             await self.sqlm.removetemprole(target.id, role_type)
-            await self.responsem.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".")
+            dmsuccess = await self.responsem.dm(target, "You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + ".")
+            await self.responsem.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role)
             return role, False, reason
             

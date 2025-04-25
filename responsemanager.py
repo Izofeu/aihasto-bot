@@ -4,11 +4,14 @@ class responsemanager:
     def __init__(self, cfg):
         self.cfg = cfg
         
-    async def respond(self, context, message = None, view = None):
+    async def respond(self, context, message = None, view = None, dmsuccess = True):
         if isinstance(context, commands.Context):
             author = context.author
         else:
             author = context.user
+        
+        if not dmsuccess:
+            message += "\n:warning: Target has Direct messages disabled. They have not received info about this punishment."
         
         if isinstance(context, commands.Context):
             if view is not None:
@@ -27,3 +30,10 @@ class responsemanager:
                 else:
                     response = await context.response.send_message(message, ephemeral = True)
         return response
+        
+    async def dm(self, target, message):
+        try:
+            await target.send(message)
+            return True
+        except:
+            return False

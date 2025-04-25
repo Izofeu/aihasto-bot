@@ -30,11 +30,8 @@ class timeouts:
                 # Issue timeout
                 modreason = sanitizereason(author.name, reason = reason, duration = duration)
                 await target.timeout(time, reason = modreason)
-                try:
-                    await target.send(content = "You have been timed out by <@" + str(author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
-                except:
-                    pass
-                await self.responsem.respond(context, "User <@" + str(target.id) + "> has been timed out for " + duration + ".")
+                dmsuccess = await self.responsem.dm(target, "You have been timed out by <@" + str(author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
+                await self.responsem.respond(context, "User <@" + str(target.id) + "> has been timed out for " + duration + ".", dmsuccess = dmsuccess)
                 await self.logm.sendlog(self.logm.timeouts, author, target = target.id, duration = [time, untiltimestamp], reason = isemptyreason(reason))
             except:
                 await self.responsem.respond(context, "Error issuing a timeout. Check bot permissions.")
