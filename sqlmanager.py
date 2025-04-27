@@ -246,9 +246,9 @@ class sqlmanager:
         
     async def getflooders(self, id):
         # Gets executed 1st
-        query = "SELECT issuer_id, issue_date, reason FROM `temproles` WHERE account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
+        query = "SELECT issuer_id, issue_date, reason FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + " ORDER BY issue_date DESC LIMIT 5;"
         result, rowid = await self.query(query, maintainconnection = True)
-        query = "SELECT COUNT(id) FROM `temproles` WHERE account_id = " + str(id) + ";"
+        query = "SELECT COUNT(id) FROM `temproles` WHERE role_type = " + str(self.flooderrole) + " AND account_id = " + str(id) + ";"
         count, rowid = await self.query(query, maintainconnection = True, connect = False)
         return count[0][0], result
         
