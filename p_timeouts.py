@@ -12,7 +12,7 @@ class timeouts:
         author = getauthor(context)
         if untimeout:
             try:
-                # Issue timeout
+                # Unissue timeout
                 modreason = sanitizereason(author.name, reason = reason, duration = duration)
                 if not target.timed_out:
                     raise Exception("User is not timed out.")
@@ -28,6 +28,9 @@ class timeouts:
                 return
             try:
                 # Issue timeout
+                if target.timed_out:
+                    await self.responsem.respond(context, "User is timed out already!")
+                    return
                 modreason = sanitizereason(author.name, reason = reason, duration = duration)
                 await target.timeout(time, reason = modreason)
                 dmsuccess = await self.responsem.dm(target, "You have been timed out by <@" + str(author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
