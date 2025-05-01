@@ -23,6 +23,38 @@ class cmdmanager:
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
+    async def enablereports(self, context, channel, linkedthread):
+        
+        return
+        
+    async def disablereports(self, context, channel):
+        
+        return
+        
+    async def reportmessage(self, context, message):
+        if self.cfg.get("maxallowedreports") == 0:
+            await self.responsem.respond(context, "The reports system is globally disabled.")
+            return
+        if self.pm.getpermissionlevel(message.author) > 0 or message.author.bot:
+            await self.responsem.respond(context, "You cannot report moderator messages.")
+            return
+        reportcount = await self.sqlm.getreportcount(context.author.id)
+        if reportcount >= self.cfg.get("maxallowedreports"):
+            await self.responsem.respond(context, "You have exceeded the maximum amount of pending reports. Please wait for your reports to get resolved before submitting more reports.")
+            return
+        cfgstring = "queuechannel_" + str(message.channel.id)
+        try:
+            threadid = self.cfg.get(cfgstring)
+        except:
+            await self.responsem.respond(context, "The reporting system is not enabled for this channel.")
+            return
+        try:
+            queuechannel = await message.author.guild.fetch_channel(self.cfg.get("modqueuechannelid"))
+        except:
+            await self.responsem.respond(context, "Couldn't fetch the mod queue channel. Contact administrators for help.")
+            return
+        return
+        
     async def timeout(self, context, target, duration, reason, untimeout = False):
         await self.timeouts.issuetimeout(context, target, duration, reason, untimeout)
         return

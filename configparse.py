@@ -57,7 +57,8 @@ class parseconfig:
     def set(self, keyname, valuename):
         try:
             keyname = str(keyname)
-            valuename = str(valuename) + "\n"
+            if valuename is not None:
+                valuename = str(valuename) + "\n"
             # If a key is found, replace it instead of creating a new line
             foundKey = False
             # This is used to remove lack of new lines when a new key is added
@@ -74,6 +75,8 @@ class parseconfig:
                         key = keyname.strip()
                         value = valuename
                         foundKey = True
+                        if valuename is None:
+                            continue
                     if not firstRun:
                         # Fix for lack of new lines when a new key is added
                         secondconfig.write("\n")

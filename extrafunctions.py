@@ -98,3 +98,17 @@ def gettimedifferencestr(date1, date2):
     
 def getdatefordb():
     return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
+    
+def preparemessagelog(cfg, message):
+    attachmentlinks = stickers = preparedtitle = ""
+    prepareddescription = "Message author: <@" + str(message.author.id) + ">, at https://discord.com/channels/" + str(cfg.get("guild")) + "/" + str(message.channel.id) + "/" + str(message.id)
+    preparedmessage = message.content
+    if len(preparedmessage) > 1023:
+        preparedtitle = " (trimmed)"
+        preparedmessage = preparedmessage[:1023]
+    
+    for x in message.attachments:
+        attachmentlinks += x.proxy_url + "\n"
+    for x in message.stickers:
+        stickers += x.url + "\n"
+    return preparedmessage, prepareddescription, preparedtitle, attachmentlinks, stickers

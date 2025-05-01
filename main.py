@@ -12,7 +12,7 @@ import commandmanager
 import rolemanager
 import c_ui
 import responsemanager
-from extrafunctions import getutctimestamp, isemptyreason, sanitizereason, isvalidtime
+from extrafunctions import getutctimestamp, isemptyreason, sanitizereason, isvalidtime, preparemessagelog
 
 messagecache = []
 recentunbans = []
@@ -142,24 +142,15 @@ async def on_message_delete(message):
     embed = discord.Embed()
     embed.title = "Message deleted"
     embed.color = discord.Colour.red()
-    embed.description = "Message author: <@" + str(message.author.id) + ">, at <#" + str(message.channel.id) + ">"
-    oldmessagetitle = "Old message:"
-    oldmessage = message.content
-    if len(oldmessage) > 1023:
-        oldmessage = oldmessage[:1023]
-        oldmessagetitle += " (trimmed)"
-    embed.add_field(name = oldmessagetitle, value = oldmessage, inline = False)
-    attachmentlinks = ""
-    for x in message.attachments:
-        attachmentlinks += x.proxy_url + "\n"
+    preparedmessage, prepareddescription, preparedtitle, attachmentlinks, stickers = preparemessagelog(cfg, message)
+    embed.description = prepareddescription
+    preparedtitle = "Old message:" + preparedtitle
+    embed.add_field(name = preparedtitle, value = preparedmessage, inline = False)
     if attachmentlinks:
         embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
-    stickers = ""
-    for x in message.stickers:
-        stickers += x.url + "\n"
     if stickers:
         embed.add_field(name = "Stickers:", value = stickers, inline = False)
-    #embed.add_field(name = "Date:", value = "<t:" + getutctimestamp() + ":f>", inline = False)
+    
     await logm.uploadembed(embed, ismessagelog = True)
     return
     
@@ -219,6 +210,12 @@ async def checkwarnings():
     return
 async def checktemproles():
     await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+    return
+    
+@bot.message_command(name = "Report message")
+@guild_only()
+async def reportmessage(context, message):
+    await cmdm.reportmessage(context, message)
     return
     
 @bot.message_command(name = "Edit mod reason")
@@ -762,6 +759,88 @@ async def seteventroles(context, eventmanager: discord.Option(
             await context.respond("Marked " + eventmanager.name + " as Event manager and " + gladiator.name + " as Gladiator.")
         except:
             await pm.throwerror(context, "Error setting roles.")
+        return
+        
+@bot.slash_command(description = "Disables reporting system for a channel.")
+@guild_only()
+async def disablereports(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to disable the report system for.")
+    ):
+         # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.disablereports(context, channel)
+        return
+        return
+        
+@bot.slash_command(description = "Enables reporting system for a channel.")
+@guild_only()
+async def enablereports(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to enable the report system for."),
+    linkedthread: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Thread to link the channel reports to.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.enablereports(context, channel, linkedthread)
+        return
+        
+@bot.slash_command(description = "Changes the channel of a mod queue.")
+@guild_only()
+async def setmodqueuechannel(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to set the mod queue to.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        if not str(channel.type) == "text":
+            await responsem.respond(context, "The channel you've selected is not a text channel.")
+            return
+        await responsem.respond("Set the queue channel to <#" + str(channel.id) + ">.")
+        cfg.set("modqueuechannelid", channel.id)
+        return
+        
+@bot.slash_command(description = "Sets the maximum amount of pending reports allowed per user.")
+@guild_only()
+async def reportslimit(context, max: discord.Option(
+    discord.SlashCommandOptionType.integer,
+    required = True,
+    description = "Maximum amount of reports to allow. 0 disables the reports system.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        if max < 0 or max > 999:
+            await responsem.respond(context, "Invalid report count. Range: 0-999.")
+            return
+        try:
+            # Write new ids to config
+            cfg.set("maxallowedreports", max)
+            await responsem.respond(context, "Set the maximum reports per user to " + str(max) + ".")
+            await logm.sendlog(logm.reportslimit, context, target = max)
+        except:
+            await responsem.respond(context, "Error setting the max report count.")
         return
         
 @bot.slash_command(description = "Changes the channel of log messages.")

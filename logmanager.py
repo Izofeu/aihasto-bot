@@ -27,6 +27,7 @@ class logmanager:
         self.bans = 10
         self.kicks = 11
         self.assignments = 12
+        self.reportslimit = 13
         
         self.addrole = 1
         self.removerole = 2
@@ -104,6 +105,11 @@ class logmanager:
                 
                 caseid = await self.sqlm.addtimeout(target, context.id, date, reason)
                 embed.add_field(name = "Case ID", value = str(caseid), inline = False)
+        elif category == self.reportslimit:
+            embed.title = "Reports limit set"
+            embed.color = discord.Colour.teal()
+            embed.description = str(target) + " reports maximum"
+            embed.add_field(name = "Issuer", value = "<@" + str(context.author.id) + ">", inline = False)
         elif category == self.assignments:
             author = getauthor(context)
             embed.title = "Assignment set"

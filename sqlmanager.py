@@ -104,6 +104,15 @@ class sqlmanager:
                 ");"
                 )
                 await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `reportscount`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -122,6 +131,11 @@ class sqlmanager:
             if not maintainconnection:
                 self.lock.release()
         return result, rowid
+    
+    async def getreportcount(self, id):
+        query = "SELECT COUNT(id) FROM `reportscount` WHERE account_id = " + str(id)
+        count = await self.query(query)
+        return int(count[0][0])
     
     async def updatewarnreason(self, caseid, reason):
         query = "UPDATE `warns` SET reason = %s WHERE id = " + caseid
