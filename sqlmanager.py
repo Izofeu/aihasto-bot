@@ -113,6 +113,15 @@ class sqlmanager:
                 ");"
                 )
                 await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `reportedmessages`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`reportedmessageid` varchar(40) NOT NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -137,10 +146,18 @@ class sqlmanager:
         count, _ = await self.query(query)
         return int(count[0][0])
         
-    async def addreport(self, id):
+    async def addreport(self, id, messageid):
+        query = "SELECT COUNT(id) FROM `reportedmessages` WHERE reportedmessageid = " + str(messageid)
+        result, _ = await self.query(query, maintainconnection = True)
+        if result[0][0] > 0:
+            await self.cur.close()
+            self.lock.release()
+            return True
         query = "INSERT INTO `reportscount` (account_id) VALUES (" + str(id) + ");"
-        await self.query(query)
-        return
+        await self.query(query, connect = False, maintainconnection = True)
+        query = "INSERT INTO `reportedmessages` (reportedmessageid) VALUES (" + str(messageid) + ");"
+        await self.query(query, connect = False, maintainconnection = False)
+        return False
         
     async def subtractreport(self, id):
         query = "DELETE FROM `reportscount` WHERE account_id = " + str(id) + " LIMIT 1;"

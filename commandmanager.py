@@ -75,7 +75,10 @@ class cmdmanager:
     async def submitreport(self, context, message, reason, modthread):
         author = getauthor(context)
         reason = isemptyreason(reason)
-        
+        wasreported = await self.sqlm.addreport(author.id, message.id)
+        if wasreported:
+            await self.responsem.respond(context, "This message has already been reported!")
+            return
         embed = discord.Embed()
         embed.title = "Message copy (Report)"
         embed.color = discord.Colour.green()
@@ -103,7 +106,6 @@ class cmdmanager:
         embed.add_field(name = "Reporter", value = "<@" + str(author.id) + ">", inline = False)
         embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
         await modthread.send(embed = embed)
-        await self.sqlm.addreport(author.id)
         await self.responsem.respond(context, ":white_check_mark: Reported " + messagelink + " by <@" + str(message.author.id) + "> successfully.")
         return
         
