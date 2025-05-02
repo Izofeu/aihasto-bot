@@ -45,7 +45,8 @@ class cmdmanager:
         if self.cfg.get("maxallowedreports") == 0:
             await self.responsem.respond(context, "The reports system is globally disabled.")
             return
-        if self.pm.getpermissionlevel(message.author) > 0 or message.author.bot:
+        permissionlevel = await self.pm.getpermissionlevel(message.author)
+        if permissionlevel > 0 or message.author.bot:
             await self.responsem.respond(context, "You cannot report moderator messages.")
             return
         reportcount = await self.sqlm.getreportcount(context.author.id)
@@ -210,7 +211,7 @@ class cmdmanager:
                     issuerid = issuerid[2:-1]
                     issuerid = int(issuerid)
                     if author.id != issuerid:
-                        permlevel = self.pm.getpermissionlevel(author)
+                        permlevel = await self.pm.getpermissionlevel(author)
                         if permlevel < 3:
                             await self.responsem.respond(context, "You are not the author of this punishment. Ask Mita's Arms for assistance.")
                             return

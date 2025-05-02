@@ -24,7 +24,7 @@ class warns:
         
     async def clearwarns(self, context, target, reason):
         author = getauthor(context)
-        permlevel = self.pm.getpermissionlevel(author)
+        permlevel = await self.pm.getpermissionlevel(author)
         try:
             if permlevel == 1:
                 await self.sqlm.removewarnings(target.id, author.id)

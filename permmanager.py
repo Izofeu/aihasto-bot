@@ -1,10 +1,12 @@
 import discord
+from extrafunctions import getguild
 # WARNING! These permission methods are sensitive as they safeguard the bot against misuse.
 # Any changes here could result in unauthorized users being able to run forbidden commands!
 class permmanager:
-    def __init__(self, cfg, responsem):
+    def __init__(self, cfg, bot, responsem):
         # Prepare cfg
         self.cfg = cfg
+        self.bot = bot
         self.responsem = responsem
         
     async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False, useroverride = False, shoulderoverride = False):
@@ -20,7 +22,7 @@ class permmanager:
             if commandpermissionlevel == -1:
                 raise Exception("Command permission level not set.")
             # Check permission level of the user who ran the command
-            inituser_permissionlevel = self.getpermissionlevel(member)
+            inituser_permissionlevel = await self.getpermissionlevel(member, reliable = False)
             if inituser_permissionlevel < commandpermissionlevel:
                 await self.responsem.respond(context, "You do not have enough permissions to run this command.")
                 return False
@@ -34,7 +36,7 @@ class permmanager:
                 if target.bot:
                     await self.responsem.respond(context, "The target mustn't be a bot.")
                     return False
-                targetuser_permissionlevel = self.getpermissionlevel(target)
+                targetuser_permissionlevel = await self.getpermissionlevel(target)
                 if targetuser_permissionlevel >= inituser_permissionlevel:
                     if shoulderoverride:
                         return True
@@ -44,16 +46,22 @@ class permmanager:
             return False
         return True
         
-    def getpermissionlevel(self, member):
+    async def getpermissionlevel(self, member, reliable = True):
         # This method returns permission level based on what roles the user has.
         # Master is the bot coder who has the permission for debugging purposes.
         # Manage servers permission is considered a top level permission
         # that allows complete management over the bot.
         if not isinstance(member, discord.Member):
-            return 0
+            if not reliable:
+                return 0
+            try:
+                guild = getguild(self.cfg, self.bot)
+                member = await guild.fetch_member(member.id)
+            except:
+                return 0
         if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(",")) and self.cfg.get("permdebug") == 0:
             return 4
-        if self.hasrole(member, self.cfg.get("armrole")) or memeber.guild_permissions.manage_roles:
+        if self.hasrole(member, self.cfg.get("armrole")) or member.guild_permissions.manage_roles:
             return 3
         if self.hasrole(member, self.cfg.get("handrole")) or member.guild_permissions.ban_members:
             return 2

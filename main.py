@@ -47,7 +47,7 @@ cfg.load()
 token = cfg.loadtoken()
 responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
-pm = permmanager.permmanager(cfg, responsem)
+pm = permmanager.permmanager(cfg, bot, responsem)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot, sqlm)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm, responsem)
@@ -80,7 +80,7 @@ async def on_message_edit(before, after):
             pass
         time = isvalidtime("1d")
         untiltimestamp = int(time.timestamp())
-        permlevel = pm.getpermissionlevel(after.author)
+        permlevel = await pm.getpermissionlevel(after.author)
         if permlevel == 0:
             reason = "Edited a message in miside-great-mita."
             await after.author.timeout(time, reason = reason)
@@ -102,7 +102,8 @@ async def on_message_edit(before, after):
     elif before.content == after.content and before.attachments == after.attachments:
         return
     else:
-        if pm.getpermissionlevel(after.author) == 4:
+        permissionlevel = await pm.getpermissionlevel(after.author, reliable = False)
+        if permissionlevel == 4:
             return
         if str(before.channel.id) in cfg.get("nologs").split(","):
             return
@@ -135,7 +136,8 @@ async def on_message_edit(before, after):
 async def on_message_delete(message):
     if message.author.bot:
         return
-    if pm.getpermissionlevel(message.author) == 4:
+    permissionlevel = await pm.getpermissionlevel(message.author, reliable = False)
+    if permissionlevel == 4:
         return
     if str(message.channel.id) in cfg.get("nologs").split(","):
         return
@@ -377,7 +379,8 @@ async def addgladiator(context, target: discord.Option(
         except:
             await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
             return
-        if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
+        permissionlevel = await pm.getpermissionlevel(context.author)
+        if not pm.hasrole(context.author, eventmanagerrole.id) and permissionlevel < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
         await context.defer(ephemeral = True)
@@ -401,7 +404,8 @@ async def removegladiator(context, target: discord.Option(
         except:
             await pm.throwerror(context, "Gladiator / Event manager roles are not set!")
             return
-        if not pm.hasrole(context.author, eventmanagerrole.id) and pm.getpermissionlevel(context.author) < 4:
+        permissionlevel = await pm.getpermissionlevel(context.author)
+        if not pm.hasrole(context.author, eventmanagerrole.id) and permissionlevel < 4:
             await pm.throwerror(context, "You do not have Event Manager role.")
             return
         await context.defer(ephemeral = True)
@@ -630,7 +634,8 @@ async def creator(context, target: discord.Option(
     description = "Reason for toggling the Content creator role.")
     ):
         # Command permission level
-        if not pm.hasrole(context.author, cfg.get("contentcreatormanagerrole")) and pm.getpermissionlevel(context.author) < 4:
+        permissionlevel = await pm.getpermissionlevel(context.author)
+        if not pm.hasrole(context.author, cfg.get("contentcreatormanagerrole")) and permissionlevel < 4:
             await pm.throwerror(context, "Only Content creator managers can run this command.")
             return
         await cmdm.role(context = context, target = target, role = rolem.contentcreatorrole, reason = reason)
@@ -885,7 +890,7 @@ async def permdebug(context):
 @guild_only()
 async def getperms(context):
     # Debug command to return permission level
-    permlevel = pm.getpermissionlevel(context.author)
+    permlevel = await pm.getpermissionlevel(context.author)
     if permlevel == 4:
         permmessage = "Shoulder / Bot Administrator (4)."
     elif permlevel == 3:
