@@ -87,21 +87,32 @@ class resolvereportbutton(discord.ui.View):
     def __init__(self, sqlm):
         super().__init__(timeout = None)
         self.sqlm = sqlm
+        self.hook = None
         
     @discord.ui.button(label = "Mark Resolved", emoji = "✅", custom_id = "resolvedbutton", style = discord.ButtonStyle.success)
     async def valid_callback(self, button, interaction):
+        self.disable_all_items()
         author = getauthor(interaction)
         message = interaction.message
-        await message.delete()
+        try:
+            embed = message.embeds[0]
+            embed.insert_field_at(index = 0, name = "Resolved by", value = "<@" + str(author.id) + ">", inline = False)
+            await message.edit(view = self, embed = embed)
+        except:
+            await message.edit(view = self)
+        await interaction.respond("Marked the report as resolved. Discord forces me to send this useless message else you get an error :slight_frown:.", ephemeral = True)
         await self.sqlm.subtractreport(author.id)
         return
         
-    @discord.ui.button(label = "Mark Invalid", emoji = "❌", custom_id = "unresolvedbutton", style = discord.ButtonStyle.danger)
-    async def invalid_callback(self, button, interaction):
-        author = getauthor(interaction)
-        message = interaction.message
-        await message.delete()
-        return
+    def sethook(self, hook):
+        self.hook = hook
+        
+    #@discord.ui.button(label = "Mark Invalid", emoji = "❌", custom_id = "unresolvedbutton", style = discord.ButtonStyle.danger)
+    #async def invalid_callback(self, button, interaction):
+    #    author = getauthor(interaction)
+    #    message = interaction.message
+    #    await message.delete()
+    #    return
         
 class showwarnsbutton(discord.ui.View):
     @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)

@@ -108,6 +108,7 @@ class cmdmanager:
         embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
         resolvedbutton = c_ui.resolvereportbutton(self.sqlm)
         message = await modthread.send(embed = embed, view = resolvedbutton)
+        resolvedbutton.sethook(message)
         await message.add_reaction("🙋‍♂️")
         await self.responsem.respond(context, ":white_check_mark: Reported " + messagelink + " by <@" + str(message.author.id) + "> successfully.")
         return
