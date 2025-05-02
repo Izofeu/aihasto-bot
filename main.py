@@ -197,6 +197,7 @@ async def on_ready():
     print("Logged in to Discord.")
     print("successfully finished startup")
     # Start periodic task for checking expired temproles
+    bot.add_view(c_ui.resolvereportbutton(sqlm))
     logm.ready()
     checkmodactions.start()
     
@@ -214,6 +215,7 @@ async def checktemproles():
     
 @bot.message_command(name = "Report message")
 @guild_only()
+@commands.cooldown(1, 20, commands.BucketType.user)
 async def reportmessage(context, message):
     await cmdm.reportmessage(context, message)
     return
