@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr
+from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -24,11 +24,21 @@ class cmdmanager:
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
     async def enablereports(self, context, channel, linkedthread):
-        
+        if not str(channel.type) == "text" or not str(linkedthread.type) == "public_thread":
+            await self.responsem.respond(context, "The channel must be a text channel and the linked thread must be a public thread.")
+            return
+        if linkedthread.parent_id != self.cfg.get("modqueuechannelid"):
+            await self.responsem.respond(context, "The selected thread does not belong to the mod queue channel.")
+            return
+        cfgstring = "queuechannel_" + str(channel.id)
+        self.cfg.set(cfgstring, linkedthread.id)
+        await self.responsem.respond(context, "Enabled reports in <#" + str(channel.id) + "> -> <#" + str(linkedthread.id) + ">.")
         return
         
     async def disablereports(self, context, channel):
-        
+        cfgstring = "queuechannel_" + str(channel.id)
+        self.cfg.set(cfgstring, None)
+        await self.responsem.respond(context, "Disabled reports in <#" + str(channel.id) + ">.")
         return
         
     async def reportmessage(self, context, message):
@@ -49,10 +59,52 @@ class cmdmanager:
             await self.responsem.respond(context, "The reporting system is not enabled for this channel.")
             return
         try:
-            queuechannel = await message.author.guild.fetch_channel(self.cfg.get("modqueuechannelid"))
+            guild = getguild(self.cfg, self.bot)
+            queuechannel = await guild.fetch_channel(self.cfg.get("modqueuechannelid"))
         except:
             await self.responsem.respond(context, "Couldn't fetch the mod queue channel. Contact administrators for help.")
             return
+        modthread = queuechannel.get_thread(threadid)
+        if modthread is None:
+            await self.responsem.respond(context, "Couldn't fetch the queue thread. Contact administrators for help.")
+            return
+        reportui = c_ui.reportui(message, modthread, self.submitreport)
+        await context.send_modal(reportui)
+        return
+        
+    async def submitreport(self, context, message, reason, modthread):
+        author = getauthor(context)
+        reason = isemptyreason(reason)
+        
+        embed = discord.Embed()
+        embed.title = "Message copy (Report)"
+        embed.color = discord.Colour.green()
+        preparedmessage, prepareddescription, preparedtitle, attachmentlinks, stickers = preparemessagelog(self.cfg, message)
+        embed.description = prepareddescription
+        preparedtitle = "Old message:" + preparedtitle
+        embed.add_field(name = preparedtitle, value = preparedmessage, inline = False)
+        if attachmentlinks:
+            embed.add_field(name = "Attachments:", value = attachmentlinks, inline = False)
+        if stickers:
+            embed.add_field(name = "Stickers:", value = stickers, inline = False)
+        
+        copiedmessage = await self.logm.uploadembed(embed, ismessagelog = True)
+        messagelink = "https://discord.com/channels/" + str(self.cfg.get("guild")) + "/" + str(message.channel.id) + "/" + str(message.id)
+        reportedcontent = "Message link: " + messagelink
+        reportedcontent += "\nMessage copy: https://discord.com/channels/" + str(self.cfg.get("guild")) + "/" + str(copiedmessage.channel.id) + "/" + str(copiedmessage.id)
+        description = "Reason: " + reason
+        description += "\n" + reportedcontent
+
+        embed = discord.Embed()
+        embed.description = description
+        embed.color = discord.Colour.light_gray()
+        embed.title = "Report"
+        embed.add_field(name = "Target", value = "<@" + str(message.author.id) + ">", inline = False)
+        embed.add_field(name = "Reporter", value = "<@" + str(author.id) + ">", inline = False)
+        embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
+        await modthread.send(embed = embed)
+        await self.sqlm.addreport(author.id)
+        await self.responsem.respond(context, ":white_check_mark: Reported " + messagelink + " by <@" + str(message.author.id) + "> successfully.")
         return
         
     async def timeout(self, context, target, duration, reason, untimeout = False):

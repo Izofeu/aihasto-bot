@@ -53,6 +53,7 @@ class logmanager:
         except:
             return False
         return message
+        
     async def uploadlog(self, content, context):
         try:
             message = await self.logchannel.send(content)
@@ -62,23 +63,23 @@ class logmanager:
             await context.respond("Error sending a message in the log channel.", ephemeral = False)
             return None
         return message
+        
     async def editembed(self, message, embed):
-        #try:
         await message.edit(embed = embed)
-        #except:
-        #    return False
         return True
+        
     async def uploadembed(self, embed, ismessagelog = False):
         try:
             embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
             if ismessagelog:
-                await self.messagelogchannel.send(embed = embed)
+                message = await self.messagelogchannel.send(embed = embed)
             else:
-                await self.logchannel.send(embed = embed)
+                message = await self.logchannel.send(embed = embed)
         except Exception as e:
             print(datetime.datetime.now())
             print(e)
-        return
+            print(embed)
+        return message
     async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False, caseid = None):
         embed = discord.Embed()
         if category == self.timeouts:

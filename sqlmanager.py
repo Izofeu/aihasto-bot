@@ -134,8 +134,18 @@ class sqlmanager:
     
     async def getreportcount(self, id):
         query = "SELECT COUNT(id) FROM `reportscount` WHERE account_id = " + str(id)
-        count = await self.query(query)
+        count, _ = await self.query(query)
         return int(count[0][0])
+        
+    async def addreport(self, id):
+        query = "INSERT INTO `reportscount` (account_id) VALUES (" + str(id) + ");"
+        await self.query(query)
+        return
+        
+    async def subtractreport(self, id):
+        query = "DELETE FROM `reportscount` WHERE account_id = " + str(id) + " LIMIT 1;"
+        await self.query(query)
+        return
     
     async def updatewarnreason(self, caseid, reason):
         query = "UPDATE `warns` SET reason = %s WHERE id = " + caseid

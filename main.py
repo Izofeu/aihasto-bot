@@ -814,7 +814,7 @@ async def setmodqueuechannel(context, channel: discord.Option(
         if not str(channel.type) == "text":
             await responsem.respond(context, "The channel you've selected is not a text channel.")
             return
-        await responsem.respond("Set the queue channel to <#" + str(channel.id) + ">.")
+        await responsem.respond(context, "Set the queue channel to <#" + str(channel.id) + ">.")
         cfg.set("modqueuechannelid", channel.id)
         return
         

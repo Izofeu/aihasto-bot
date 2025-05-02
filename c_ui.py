@@ -70,6 +70,18 @@ class flooderui(discord.ui.Modal):
         #await interaction.response.send_message(message, ephemeral = True)
         return
         
+class reportui(discord.ui.Modal):
+    def __init__(self, message, modthread, submitreport, title = "Report message"):
+        super().__init__(title = title)
+        self.message = message
+        self.modthread = modthread
+        self.submitreport = submitreport
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, placeholder = "10 characters minimum", min_length = 10, max_length = 256))
+    async def callback(self, interaction: discord.Interaction):
+        reason = self.children[0].value
+        await self.submitreport(interaction, self.message, reason, self.modthread)
+        return
+        
 class showwarnsbutton(discord.ui.View):
     @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)
     async def button_callback(self, button, interaction):

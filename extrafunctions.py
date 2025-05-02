@@ -112,3 +112,6 @@ def preparemessagelog(cfg, message):
     for x in message.stickers:
         stickers += x.url + "\n"
     return preparedmessage, prepareddescription, preparedtitle, attachmentlinks, stickers
+    
+def getguild(cfg, bot):
+    return bot.get_guild(cfg.get("guild"))
