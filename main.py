@@ -49,7 +49,7 @@ responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg, bot, responsem)
 sqlm = sqlmanager.sqlmanager(cfg)
-logm = logmanager.logmanager(cfg, bot, sqlm)
+logm = logmanager.logmanager(cfg, bot, sqlm, responsem)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm, responsem)
 cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
@@ -78,13 +78,12 @@ async def on_message_edit(before, after):
             await after.delete(reason = "Edited a message in miside-great-mita.")
         except:
             pass
-        time = isvalidtime("1d")
-        untiltimestamp = int(time.timestamp())
+        time, untiltimestamp = isvalidtime("1d")
         permlevel = await pm.getpermissionlevel(after.author)
         if permlevel == 0:
             reason = "Edited a message in miside-great-mita."
             await after.author.timeout(time, reason = reason)
-            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author.id, duration = untiltimestamp, reason = reason)
+            await logm.sendlog(category = logm.timeouts, mode = logm.selfissuedwarn, context = bot, target = after.author.id, duration = [time, untiltimestamp], reason = reason)
             await after.author.send(content = "You have been timed out by " + bot.user.name + " for " + reason + " until <t:" + str(untiltimestamp) + ":F>.")
     elif after.channel.id == cfg.get("gifpartyid"):
         if not cfg.get("automessagecuration"):

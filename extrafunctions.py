@@ -85,7 +85,7 @@ def getauthor(context):
         return context.author
     return context.user
     
-def gettimedifferencestr(date1, date2):
+def gettimedifferencestr(date2, date1):
     timedifference = date2 - date1
     timedifference = int(timedifference.total_seconds())
     # Account for potential clock desync of 1 minute

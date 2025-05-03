@@ -4,10 +4,11 @@ import discord
 import datetime
 
 class logmanager:
-    def __init__(self, cfg, bot, sql):
+    def __init__(self, cfg, bot, sql, responsem):
         self.cfg = cfg
         self.bot = bot
         self.sqlm = sql
+        self.responsem = responsem
         self.guild = ""
         self.logchannelid = ""
         self.logchannel = ""
@@ -93,7 +94,6 @@ class logmanager:
             if mode == self.selfissuedwarn:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.user.id) + ">", inline = False)
                 embed.add_field(name = "Until", value = "<t:" + str(duration[1]) + ":F>", inline = False)
-                
                 await self.sqlm.addtimeout(target, context.user.id, date, reason)
             elif mode == self.removetimeout:
                 embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
@@ -224,6 +224,11 @@ class logmanager:
                     if x.get("new_value"):
                         date, timestamp = discorddatetodateobject(x.get("new_value"))
                         await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason))
+                        try:
+                            member = await self.guild.fetch_member(targetid)
+                            await self.responsem.dm(member, "You have been timed out by <@" + str(mod.id) + "> for " + isemptyreason(logentry.reason) + " until <t:" + str(timestamp) + ":F>.")
+                        except:
+                            pass
                     else:
                         await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == ban:
