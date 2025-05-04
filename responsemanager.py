@@ -31,9 +31,10 @@ class responsemanager:
                     response = await context.response.send_message(message, ephemeral = True)
         return response
         
-    async def dm(self, target, message):
+    async def dm(self, target, message = None, embed = None):
         try:
-            await target.send(message)
+            await target.send(message, embed = embed)
             return True
-        except:
+        except Exception as e:
+            print(e)
             return False

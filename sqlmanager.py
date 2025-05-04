@@ -152,12 +152,12 @@ class sqlmanager:
         if result[0][0] > 0:
             await self.cur.close()
             self.lock.release()
-            return True
+            return True, None
         query = "INSERT INTO `reportscount` (account_id) VALUES (" + str(id) + ");"
         await self.query(query, connect = False, maintainconnection = True)
         query = "INSERT INTO `reportedmessages` (reportedmessageid) VALUES (" + str(messageid) + ");"
-        await self.query(query, connect = False, maintainconnection = False)
-        return False
+        result, rowid = await self.query(query, connect = False, maintainconnection = False)
+        return False, rowid
         
     async def subtractreport(self, id):
         query = "DELETE FROM `reportscount` WHERE account_id = " + str(id) + " LIMIT 1;"

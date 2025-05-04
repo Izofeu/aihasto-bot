@@ -1,5 +1,5 @@
 import discord
-from extrafunctions import getauthor
+from extrafunctions import getauthor, getutctimestamp
 
 class issueflooderbutton(discord.ui.View):
     @discord.ui.button(label = "Issue flooder", style = discord.ButtonStyle.primary)
@@ -84,10 +84,11 @@ class reportui(discord.ui.Modal):
         return
         
 class resolvereportbutton(discord.ui.View):
-    def __init__(self, sqlm):
+    def __init__(self, sqlm, responsem):
         super().__init__(timeout = None)
         self.sqlm = sqlm
         self.hook = None
+        self.responsem = responsem
         
     @discord.ui.button(label = "Mark Resolved", emoji = "✅", custom_id = "resolvedbutton", style = discord.ButtonStyle.success)
     async def valid_callback(self, button, interaction):
@@ -97,7 +98,22 @@ class resolvereportbutton(discord.ui.View):
         try:
             embed = message.embeds[0]
             embed.insert_field_at(index = 0, name = "Resolved by", value = "<@" + str(author.id) + ">", inline = False)
+            count = len(embed.fields)
+            embed.insert_field_at(index = count, name = "Resolve date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
             await message.edit(view = self, embed = embed)
+            caseid = targetid = None
+            for field in embed.fields:
+                if field.name == "Case ID":
+                    caseid = field.value
+                elif field.name == "Reporter":
+                    targetid = field.value[2:-1]
+            try:
+                if caseid and targetid:
+                    guild = interaction.guild
+                    member = await guild.fetch_member(targetid)
+                    await self.responsem.dm(member, "Your report with Case ID " + str(caseid) + " has been marked as resolved.")
+            except:
+                pass
         except:
             await message.edit(view = self)
         await interaction.respond("Marked the report as resolved. Discord forces me to send this useless message else you get an error :slight_frown:.", ephemeral = True)

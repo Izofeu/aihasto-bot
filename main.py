@@ -198,7 +198,7 @@ async def on_ready():
     print("Logged in to Discord.")
     print("successfully finished startup")
     # Start periodic task for checking expired temproles
-    bot.add_view(c_ui.resolvereportbutton(sqlm))
+    bot.add_view(c_ui.resolvereportbutton(sqlm, responsem))
     logm.ready()
     checkmodactions.start()
     

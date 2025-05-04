@@ -76,7 +76,7 @@ class cmdmanager:
     async def submitreport(self, context, message, reason, modthread):
         author = getauthor(context)
         reason = isemptyreason(reason)
-        wasreported = await self.sqlm.addreport(author.id, message.id)
+        wasreported, modid = await self.sqlm.addreport(author.id, message.id)
         if wasreported:
             await self.responsem.respond(context, "This message has already been reported!")
             return
@@ -105,11 +105,20 @@ class cmdmanager:
         embed.title = "Report"
         embed.add_field(name = "Target", value = "<@" + str(message.author.id) + ">", inline = False)
         embed.add_field(name = "Reporter", value = "<@" + str(author.id) + ">", inline = False)
+        embed.add_field(name = "Case ID", value = str(modid), inline = False)
         embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
-        resolvedbutton = c_ui.resolvereportbutton(self.sqlm)
-        message = await modthread.send(embed = embed, view = resolvedbutton)
-        resolvedbutton.sethook(message)
-        await message.add_reaction("🙋‍♂️")
+        resolvedbutton = c_ui.resolvereportbutton(self.sqlm, self.responsem)
+        threadmessage = await modthread.send(embed = embed, view = resolvedbutton)
+        lines = embed.description.split("\n")
+        embed.description = ""
+        for line in lines:
+            if line.startswith("Message copy:"):
+                continue
+            embed.description += line + "\n"
+        await self.responsem.dm(target = author, message = ("A copy of your submitted report is available below.\nYou will receive a confirmation " +
+            "when your report gets resolved."), embed = embed)
+        resolvedbutton.sethook(threadmessage)
+        await threadmessage.add_reaction("🙋‍♂️")
         await self.responsem.respond(context, ":white_check_mark: Reported " + messagelink + " by <@" + str(message.author.id) + "> successfully.")
         return
         
