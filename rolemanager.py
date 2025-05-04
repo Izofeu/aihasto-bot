@@ -69,30 +69,30 @@ class rolemanager:
             if role_type == self.flooderrole:
                 if self.pm.hasrole(target, role.id):
                     await self.responsem.respond(context, "User has " + role.name + " role already!")
-                    return False, False, False
+                    return
             date, timestamp = isvalidtime(duration, maxduration = maxduration)
             if not date:
                 await self.responsem.respond(context, "Invalid time duration.")
-                return False, False, False
+                return
             date = date.strftime("%Y-%m-%d %H:%M:%S")
             await target.add_roles(role, reason = modreason)
             rowid = await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
             dmsuccess = await self.responsem.dm(target, "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
             await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role, caseid = rowid)
-            return role, timestamp, reason
+            return
         else:
             modreason = sanitizereason(author.name, reason = reason, removedrolename = role.name, duration = duration)
             reason = isemptyreason(reason)
             if not self.pm.hasrole(target, role.id):
                 await self.responsem.respond(context, "User doesn't have " + role.name + " role!")
-                return False, False, False
+                return
             await target.remove_roles(role, reason = modreason)
             await self.sqlm.removetemprole(target.id, role_type)
             dmsuccess = await self.responsem.dm(target, "You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + ".")
             await self.responsem.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role)
-            return role, False, reason
+            return
             
     async def role(self, context, target, role, reason):
         roleid = self.getroleid(role)

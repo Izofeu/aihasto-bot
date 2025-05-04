@@ -174,17 +174,7 @@ class cmdmanager:
         
     async def temprole(self, context, target, mode, roletype, duration = False, reason = False):
         author = getauthor(context)
-        role, timestamp, reason = await self.rolem.temprole(context, target, mode, roletype, duration = duration, reason = reason)
-        if not role:
-            return
-        if mode == self.rolem.addtemprole:
-            message = "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + "."
-        else:
-            message = "You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + "."
-        try:
-            await target.send(message)
-        except:
-            pass
+        await self.rolem.temprole(context, target, mode, roletype, duration = duration, reason = reason)
         return
         
     async def role(self, context, target, role, reason):
