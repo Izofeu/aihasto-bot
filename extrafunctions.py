@@ -29,8 +29,8 @@ def isvalidtime(time, maxduration = 14):
         return date, untiltimestamp
     # If anything went wrong, report an incorrect date
     except:
-        return False
-    return False
+        return False, False
+    return False, False
     
 def isemptyreason(reason):
     if not reason:
