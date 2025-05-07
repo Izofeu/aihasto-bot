@@ -35,6 +35,5 @@ class responsemanager:
         try:
             await target.send(message, embed = embed)
             return True
-        except Exception as e:
-            print(e)
+        except:
             return False

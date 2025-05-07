@@ -29,8 +29,8 @@ def isvalidtime(time, maxduration = 14):
         return date, untiltimestamp
     # If anything went wrong, report an incorrect date
     except:
-        return False, False
-    return False, False
+        return False
+    return False
     
 def isemptyreason(reason):
     if not reason:
@@ -94,6 +94,9 @@ def gettimedifferencestr(date2, date1):
     timediff = str(hours) + " hour(s)"
     if hours == 0:
         timediff = "<1 hour"
+    elif hours > 24:
+        hours = hours // 24
+        timediff = str(hours) + " day(s)"
     return timediff
     
 def getdatefordb():

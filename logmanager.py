@@ -136,9 +136,10 @@ class logmanager:
             embed.description = reason
             embed.add_field(name = "Target", value = "<@" + str(target.id) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-            embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             if mode == self.addwarn:
                 embed.title = "Warn"
+                embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
+                embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             elif mode == self.clearwarns:
                 embed.title = "Clear all warns"
             else:

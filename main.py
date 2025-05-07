@@ -487,26 +487,26 @@ async def clearwarns(context, target: discord.Option(
         await cmdm.warn(context, target, reason, True)
         return
     
-@bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
-@guild_only()
-async def warn(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
-    required = True,
-    description = "User to issue a warning to."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = False,
-    description = "Reason for the warning. Gets sent to the user.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
-        if not canrun:
-            return
-        await context.defer(ephemeral = True)
-        await cmdm.warn(context, target, reason, False)
-        return
+#@bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
+#@guild_only()
+#async def warn(context, target: discord.Option(
+#    discord.SlashCommandOptionType.user,
+#    required = True,
+#    description = "User to issue a warning to."),
+#    reason: discord.Option(
+#    discord.SlashCommandOptionType.string,
+#    required = False,
+#    description = "Reason for the warning. Gets sent to the user.")
+#    ):
+#        # Command permission level
+#        commandpermissionlevel = 1
+#        # Permission check
+#        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+#        if not canrun:
+#            return
+#        await context.defer(ephemeral = True)
+#        await cmdm.warn(context, target, reason, False)
+#        return
     
 @bot.slash_command(description = "Remove a flooder from a user.")
 @guild_only()
@@ -782,6 +782,25 @@ async def disablereports(context, channel: discord.Option(
             return
         await cmdm.disablereports(context, channel)
         return
+        return
+        
+@bot.slash_command(description = "Changes the minimum character count for a report in a channel.")
+@guild_only()
+async def customreportminlength(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to alter the report system for."),
+    minlimit: discord.Option(discord.SlashCommandOptionType.integer,
+    required = True,
+    description = "The value in range 0-100 to set the new minimum character count.")
+    ):
+         # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.customreportminlength(context, channel, minlimit)
         return
         
 @bot.slash_command(description = "Enables reporting system for a channel.")

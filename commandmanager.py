@@ -35,6 +35,15 @@ class cmdmanager:
         await self.responsem.respond(context, "Enabled reports in <#" + str(channel.id) + "> -> <#" + str(linkedthread.id) + ">.")
         return
         
+    async def customreportminlength(self, context, channel, minlimit):
+        if minlimit not in range(0, 100):
+            await self.responsem.respond(context, "The length must be in range 0-100.")
+            return
+        cfgstring = "customlimit_" + str(channel.id)
+        self.cfg.set(cfgstring, str(minlimit))
+        await self.responsem.respond(context, "Set the limit of " + str(minlimit) + " characters for reports in <#" + str(channel.id) + ">.")
+        return
+        
     async def disablereports(self, context, channel):
         cfgstring = "queuechannel_" + str(channel.id)
         self.cfg.set(cfgstring, None)
@@ -69,7 +78,12 @@ class cmdmanager:
         if modthread is None:
             await self.responsem.respond(context, "Couldn't fetch the queue thread. Contact administrators for help.")
             return
-        reportui = c_ui.reportui(message, modthread, self.submitreport)
+        try:
+            cfgstring = "customlimit_" + str(message.channel.id)
+            minlength = self.cfg.get(cfgstring)
+        except:
+            minlength = 10
+        reportui = c_ui.reportui(message, modthread, self.submitreport, minlength = minlength)
         await context.send_modal(reportui)
         return
         
@@ -141,7 +155,7 @@ class cmdmanager:
         await context.defer(ephemeral = True)
         history = await self.sqlm.getpunishments(member.id)
         #[0][0-1] - floodercount, flooders (issuer_id, issue_date, reason)
-        #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason)
+        #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason, issue_date)
         #[2][0-1] - timeoutcount, timeouts (issuer_id, expiration_date, issue_date, reason)
         if history[0][0] == 0 and history[1][0] == 0 and history[2][0] == 0:
             message = "User <@" + str(member.id) + "> has no punishment history."
@@ -153,16 +167,28 @@ class cmdmanager:
                 
             for warn in history[1][1]:
                 date, timestamp = sqldatetodateobject(warn[1])
-                # Warns only have expiration date which is 3 days into the future
-                date = date - datetime.timedelta(days = 3)
-                timestamp = datetotimestamp(date)
-                message += "\n:warning: <t:" + str(timestamp) + ":R> - <@" + str(warn[0]) + "> - " + warn[2]
+                issuedate, issuetimestamp = sqldatetodateobject(warn[3])
+                diffstr = gettimedifferencestr(date, issuedate)
+                message += "\n:warning: <t:" + str(issuetimestamp) + ":R> - " + diffstr + " - <@" + str(warn[0]) + "> - " + warn[2]
                 
             for timeout in history[2][1]:
                 expirationdate, expirationtimestamp = sqldatetodateobject(timeout[1])
                 issuedate, issuetimestamp = sqldatetodateobject(timeout[2])
                 timediff = gettimedifferencestr(expirationdate, issuedate)
                 message += "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3]
+                
+        message += "\n"
+        
+        count, nonremovedroles = await self.sqlm.getactivetemproles(member.id, self.rolem.flooderrole)
+        if count == 0:
+            message += "\nUser <@" + str(member.id) + "> has no temproles active."
+        else:
+            message += "\nUser <@" + str(member.id) + "> has following temproles active:"
+            # `issuer_id`, `expiration_date`, `role_type`, `reason`
+            for record in nonremovedroles:
+                _, timestamp = sqldatetodateobject(record[1])
+                roleid = self.rolem.getroleid(record[2])
+                message += "\n<@&" + str(roleid) + "> - expires <t:" + str(timestamp) + ":R> - <@" + str(record[0]) + "> - " + record[3]
                 
         addflooderui = c_ui.newflooderui(member, self.rolem, self.pm.canrun)
         addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)

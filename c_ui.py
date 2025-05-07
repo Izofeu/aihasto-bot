@@ -1,33 +1,5 @@
 import discord
 from extrafunctions import getauthor, getutctimestamp
-
-class issueflooderbutton(discord.ui.View):
-    @discord.ui.button(label = "Issue flooder", style = discord.ButtonStyle.primary)
-    async def button_callback(self, button, interaction):
-        self.disable_all_items()
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await self.pm.canrun(context = interaction, member = self.context.author, target = self.target, commandpermissionlevel = commandpermissionlevel, interaction = True)
-        if not canrun:
-            return
-        
-        flooderui = self.flooderui(context = self.context, target = self.target, rolem = self.rolem, temprole = self.temprole)
-        await interaction.response.send_modal(flooderui)
-        await self.hook.edit(view = self)
-    def __init__(self, pm, context, target, flooderui, rolem, temprole):
-        # Run init function of discord.ui.View before initializing our variables
-        super().__init__()
-        self.pm = pm
-        self.context = context
-        self.target = target
-        self.flooderui = flooderui
-        self.rolem = rolem
-        self.temprole = temprole
-        
-    def setwebhook(self, hook):
-        self.hook = hook
-        return
         
 class issuewarnbutton(discord.ui.View):
     @discord.ui.button(label = "Issue warn", style = discord.ButtonStyle.primary)
@@ -54,30 +26,13 @@ class issuewarnbutton(discord.ui.View):
     def setwebhook(self, hook):
         self.hook = hook
         
-class flooderui(discord.ui.Modal):
-    def __init__(self, context, target, rolem, temprole, title = "Issue flooder role"):
-        super().__init__(title = title)
-        self.add_item(discord.ui.InputText(label = "Duration", required = True, placeholder = "2d, 48h, etc.", max_length = 5, value = "2d"))
-        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
-        self.target = target
-        self.context = context
-        self.rolem = rolem
-        self.temprole = temprole
-        
-    async def callback(self, interaction: discord.Interaction):
-        duration = self.children[0].value
-        reason = self.children[1].value
-        await self.temprole(self.context, self.target, mode = self.rolem.addtemprole, roletype = self.rolem.flooderrole, duration = duration, reason = reason, interaction = interaction)
-        #await interaction.response.send_message(message, ephemeral = True)
-        return
-        
 class reportui(discord.ui.Modal):
-    def __init__(self, message, modthread, submitreport, title = "Report message"):
+    def __init__(self, message, modthread, submitreport, title = "Report message", minlength = 10):
         super().__init__(title = title)
         self.message = message
         self.modthread = modthread
         self.submitreport = submitreport
-        self.add_item(discord.ui.InputText(label = "Reason", required = True, placeholder = "10 characters minimum", min_length = 10, max_length = 256))
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, min_length = minlength, max_length = 256))
     async def callback(self, interaction: discord.Interaction):
         reason = self.children[0].value
         await self.submitreport(interaction, self.message, reason, self.modthread)
@@ -149,19 +104,6 @@ class showwarnsbutton(discord.ui.View):
         self.getwarningmessage = getwarningmessage
         self.target = target
         
-class warnui(discord.ui.Modal):
-    def __init__(self, context, target, addwarn, title = "Issue warn"):
-        super().__init__(title = title)
-        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
-        self.target = target
-        self.context = context
-        self.addwarn = addwarn
-        
-    async def callback(self, interaction: discord.Interaction):
-        reason = self.children[0].value
-        await self.addwarn(self.context, self.target, reason = reason, interaction = interaction)
-        return
-        
 class editreasonui(discord.ui.Modal):
     def __init__(self, message, cmdm):
         super().__init__(title = "Edit mod reason")
@@ -176,6 +118,7 @@ class editreasonui(discord.ui.Modal):
         
 class newflooderui(discord.ui.Modal):
     async def callback(self, interaction):
+        await interaction.response.defer()
         # Command permission level
         commandpermissionlevel = 1
         # Permission check
@@ -196,6 +139,7 @@ class newflooderui(discord.ui.Modal):
         
 class newwarnui(discord.ui.Modal):
     async def callback(self, interaction):
+        await interaction.response.defer()
         # Command permission level
         commandpermissionlevel = 1
         # Permission check
@@ -203,7 +147,8 @@ class newwarnui(discord.ui.Modal):
         if not canrun:
             return
         reason = self.children[0].value
-        await self.addwarn(interaction, self.target, reason = reason)
+        expiry = self.children[1].value
+        await self.addwarn(interaction, self.target, reason = reason, until = expiry)
         
     def __init__(self, member, addwarn, canrun):
         super().__init__(title = "Issue warn")
@@ -211,9 +156,11 @@ class newwarnui(discord.ui.Modal):
         self.target = member
         self.addwarn = addwarn
         self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+        self.add_item(discord.ui.InputText(label = "Expires in", required = True, value = "7d", max_length = 5))
         
 class newtimeoutui(discord.ui.Modal):
     async def callback(self, interaction):
+        await interaction.response.defer()
         # Command permission level
         commandpermissionlevel = 1
         # Permission check

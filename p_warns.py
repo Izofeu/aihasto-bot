@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, isvalidtime, getauthor
+from extrafunctions import isemptyreason, isvalidtime, getauthor, getdatefordb, sqldatetodateobject, gettimedifferencestr
 import datetime
 import discord
 import c_ui
@@ -12,14 +12,19 @@ class warns:
         self.sqlm = sql
         self.responsem = responsem
     
-    async def addwarn(self, context, target, reason):
+    async def addwarn(self, context, target, reason, until):
         author = getauthor(context)
-        expirydate = isvalidtime("3d")[0].strftime("%Y-%m-%d %H:%M:%S")
+        expirydate, timestamp = isvalidtime(until)
+        if not expirydate:
+            await self.responsem.respond(context, "Invalid warn duration.")
+            return
+        untildate = expirydate.strftime("%Y-%m-%d %H:%M:%S")
+        issuedate = getdatefordb()
         modreason = isemptyreason(reason)
-        caseid = await self.sqlm.addwarning(author.id, target.id, expirydate, modreason)
-        dmsuccess = await self.responsem.dm(target, "You have been issued a warning by <@" + str(author.id) + "> for " + modreason + ".")
+        caseid = await self.sqlm.addwarning(author.id, target.id, issuedate, untildate, modreason)
+        dmsuccess = await self.responsem.dm(target, "You have been issued a warning by <@" + str(author.id) + "> for " + modreason + ". This warning expires at <t:" + str(timestamp) + ":F>.")
         await self.responsem.respond(context, "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + ".", dmsuccess = dmsuccess)
-        await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason, caseid = caseid)
+        await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason, caseid = caseid, duration = timestamp)
         return
         
     async def clearwarns(self, context, target, reason):
@@ -44,17 +49,9 @@ class warns:
             message = "<@" + str(member.id) + "> has not received any warnings."
         else:
             message = "<@" + str(member.id) + "> has received " + str(warningscount) + " warnings. Here's the date, issuer and reason of the last ten warnings:"
-            #print(warnings)
-            #print(len(warnings))
-            format = "%Y-%m-%d %H:%M:%S %z"
             for warns in warnings:
-                date = warns[1] - datetime.timedelta(days = 3)
-                # datetime object assumes timezone of the machine
-                # this part of code recreates the object with utc timezone
-                date = str(date)
-                date += " +0000"
-                date = datetime.datetime.strptime(date, format)
-                time = int(date.timestamp())
-                message += "\n<t:" + str(time) + ":R> - <@" + str(warns[0]) + "> - " + str(warns[2])
+                date, timestamp = sqldatetodateobject(warns[4])
+                timediff = gettimedifferencestr(warns[4], warns[1])
+                message += "\n<t:" + str(time) + ":R> - " + timediff + " - <@" + str(warns[0]) + "> - " + str(warns[2])
                 message = message[:1999]
         return message
