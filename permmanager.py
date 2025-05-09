@@ -59,13 +59,13 @@ class permmanager:
                 member = await guild.fetch_member(member.id)
             except:
                 return 0
-        if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(",")) and self.cfg.get("permdebug") == 0:
+        if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(",")) and not self.cfg.get("permdebug"):
             return 4
-        if self.hasrole(member, self.cfg.get("armrole")) or member.guild_permissions.manage_roles:
+        if self.hasrole(member, self.cfg.get("armrole")) or (member.guild_permissions.manage_roles and not self.cfg.get("permdebug")):
             return 3
-        if self.hasrole(member, self.cfg.get("handrole")) or member.guild_permissions.ban_members:
+        if self.hasrole(member, self.cfg.get("handrole")) or (member.guild_permissions.ban_members and not self.cfg.get("permdebug")):
             return 2
-        if self.hasrole(member, self.cfg.get("puppetrole")) or member.guild_permissions.manage_messages:
+        if self.hasrole(member, self.cfg.get("puppetrole")) or (member.guild_permissions.manage_messages and not self.cfg.get("permdebug")):
             return 1
         return 0
         

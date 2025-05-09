@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp
+from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp, sanitizereason, getdatefordb
 import p_timeouts
 import p_warns
 import g_slowmodes
@@ -22,6 +22,24 @@ class cmdmanager:
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
+        
+    async def kick(self, context, target, reason):
+        author = getauthor(context)
+        success = await self.responsem.dm(target, ("You have been kicked from AIHASTO by " + author.name + " for " + isemptyreason(reason) + ".\n" +
+        "Please edit your profile before rejoining else you will get banned."))
+        if not success:
+            await self.responsem.respond(context, ":x: User has DMs disabled. Action has been aborted.")
+        else:
+            try:
+                await target.kick(reason = sanitizereason(author = author.name, reason = isemptyreason(reason), kick = True))
+            except Exception as e:
+                print(e)
+                await self.responsem.respond(context, ":x: Error kicking user.")
+                return
+            await self.responsem.respond(context, ":white_check_mark: User has received a DM and has been kicked.")
+            await self.logm.sendlog(self.logm.kicks, author, target = target.id, reason = isemptyreason(reason))
+        await self.sqlm.insertkick(target.id, author.id, getdatefordb(), isemptyreason(reason), success)
+        return
         
     async def enablereports(self, context, channel, linkedthread):
         if not str(channel.type) == "text" or not str(linkedthread.type) == "public_thread":
@@ -152,8 +170,10 @@ class cmdmanager:
         return
         
     async def showpunishmenthistory(self, context, member):
+        author = getauthor(context)
         await context.defer(ephemeral = True)
         history = await self.sqlm.getpunishments(member.id)
+        kickstatus = await self.sqlm.getkick(member.id)
         #[0][0-1] - floodercount, flooders (issuer_id, issue_date, reason)
         #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason, issue_date)
         #[2][0-1] - timeoutcount, timeouts (issuer_id, expiration_date, issue_date, reason)
@@ -190,10 +210,21 @@ class cmdmanager:
                 roleid = self.rolem.getroleid(record[2])
                 message += "\n<@&" + str(roleid) + "> - expires <t:" + str(timestamp) + ":R> - <@" + str(record[0]) + "> - " + record[3]
                 
+        message += "\n"
+        
+        message += "Kicked before: "
+        if not kickstatus:
+            message += ":x: No"
+        elif kickstatus[0][0] == 2:
+            message += ":warning: Failed (DMs off)"
+        else:
+            message += ":white_check_mark: Yes"
+                
         addflooderui = c_ui.newflooderui(member, self.rolem, self.pm.canrun)
         addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
         addwarnui = c_ui.newwarnui(member, self.warns.addwarn, self.pm.canrun)
-        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui)
+        kickui = c_ui.newkickui(member, self.pm.canrun, self.kick)
+        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui, kickui)
         response = await self.responsem.respond(context, message, view = punishmentbuttons)
         punishmentbuttons.sethook(response)
         return

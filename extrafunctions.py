@@ -37,7 +37,7 @@ def isemptyreason(reason):
         reason = "No reason provided."
     return reason[:511]
     
-def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False, unban = False):
+def sanitizereason(author, reason = False, addedrolename = False, removedrolename = False, duration = False, unban = False, kick = False):
     finalreason = "Responsible user: " + author
     if addedrolename:
         finalreason += ", Added role: " + addedrolename
@@ -45,6 +45,8 @@ def sanitizereason(author, reason = False, addedrolename = False, removedrolenam
         finalreason += ", Removed role: " + removedrolename
     if unban:
         finalreason += ", Action: Unban"
+    if kick:
+        finalreason += ", Action: Kick"
     if duration:
         finalreason += ", Duration: " + duration
     if reason:

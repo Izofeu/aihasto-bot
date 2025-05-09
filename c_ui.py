@@ -181,6 +181,25 @@ class newtimeoutui(discord.ui.Modal):
         self.target = target
         self.addtimeout = addtimeout
         
+class newkickui(discord.ui.Modal):
+    async def callback(self, interaction):
+        await interaction.response.defer()
+        # Command permission level
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await self.canrun(interaction, interaction.user, target = self.target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        reason = self.children[0].value
+        await self.kick(interaction, self.target, reason)
+            
+    def __init__(self, target, canrun, kick):
+        super().__init__(title = "Kick user")
+        self.canrun = canrun
+        self.target = target
+        self.kick = kick
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, placeholder = "Bad name / bio / pronouns...", max_length = 511))
+        
 class punishmentbuttons(discord.ui.View):
     @discord.ui.button(label = "Warn", emoji = "⚠️", style = discord.ButtonStyle.primary)
     async def addwarn_callback(self, button, interaction):
@@ -208,6 +227,12 @@ class punishmentbuttons(discord.ui.View):
         flooderui = self.flooderui
         await interaction.response.send_modal(flooderui)
         
+    @discord.ui.button(label = "Kick", emoji = "🥾", style = discord.ButtonStyle.danger, row = 1)
+    async def kick_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        kickui = self.kickui
+        await interaction.response.send_modal(kickui)
+        
     async def disableallbuttons(self, interaction):
         self.disable_all_items()
         await self.hook.edit(view = self)
@@ -216,11 +241,12 @@ class punishmentbuttons(discord.ui.View):
     def sethook(self, hook):
         self.hook = hook
         
-    def __init__(self, permmanager, target, warnui, timeoutui, flooderui):
+    def __init__(self, permmanager, target, warnui, timeoutui, flooderui, kickui):
         super().__init__(timeout = 60)
         self.target = target
         self.warnui = warnui
         self.timeoutui = timeoutui
         self.flooderui = flooderui
+        self.kickui = kickui
         self.hook = None
         self.pm = permmanager
