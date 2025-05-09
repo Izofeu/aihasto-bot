@@ -179,6 +179,8 @@ class logmanager:
             embed.description = reason
             embed.color = discord.Colour.yellow()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            if caseid:
+                embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
         await self.uploadembed(embed)
         return

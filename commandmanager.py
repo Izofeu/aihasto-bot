@@ -37,8 +37,9 @@ class cmdmanager:
                 await self.responsem.respond(context, ":x: Error kicking user.")
                 return
             await self.responsem.respond(context, ":white_check_mark: User has received a DM and has been kicked.")
-            await self.logm.sendlog(self.logm.kicks, author, target = target.id, reason = isemptyreason(reason))
-        await self.sqlm.insertkick(target.id, author.id, getdatefordb(), isemptyreason(reason), success)
+        caseid = await self.sqlm.insertkick(target.id, author.id, getdatefordb(), isemptyreason(reason), success)
+        if success:
+            await self.logm.sendlog(self.logm.kicks, author, target = target.id, reason = isemptyreason(reason), caseid = caseid)
         return
         
     async def enablereports(self, context, channel, linkedthread):
@@ -212,13 +213,13 @@ class cmdmanager:
                 
         message += "\n"
         
-        message += "Kicked before: "
+        message += "\nKicked before: "
         if not kickstatus:
             message += ":x: No"
         elif kickstatus[0][0] == 2:
-            message += ":warning: Failed (DMs off)"
+            message += ":warning: Failed (DMs off) - <@" + str(kickstatus[0][2]) + "> - " + kickstatus[0][1]
         else:
-            message += ":white_check_mark: Yes"
+            message += ":white_check_mark: Yes - <@" + str(kickstatus[0][2]) + "> - " + kickstatus[0][1]
                 
         addflooderui = c_ui.newflooderui(member, self.rolem, self.pm.canrun)
         addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
@@ -291,6 +292,9 @@ class cmdmanager:
                 responsemessage += " Edited the database record."
             elif title == "Add temprole":
                 await self.sqlm.updatetemprolereason(caseid, isemptyreason(reason))
+                responsemessage += " Edited the database record."
+            elif title == "Kick":
+                await self.sqlm.updatekickreason(caseid, isemptyreason(reason))
                 responsemessage += " Edited the database record."
         await self.logm.editembed(message, embed)
         await self.responsem.respond(context, responsemessage)

@@ -163,11 +163,11 @@ class sqlmanager:
     async def insertkick(self, id, issuer_id, date, reason, waskicked):
         kicktype = self.kicksuccess if waskicked else self.kickfailuredms
         query = "INSERT INTO `badnames` (account_id, issuer_id, issue_date, reason, kicktype) VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + date + "', %s, " + str(kicktype) + ")"
-        await self.query(query, [reason])
-        return
+        _, caseid = await self.query(query, [reason])
+        return caseid
     
     async def getkick(self, id):
-        query = "SELECT kicktype, reason FROM `badnames` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1"
+        query = "SELECT kicktype, reason, issuer_id FROM `badnames` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1"
         result, _ = await self.query(query, maintainconnection = True, connect = False)
         return result
     
@@ -192,6 +192,11 @@ class sqlmanager:
     async def subtractreport(self, id):
         query = "DELETE FROM `reportscount` WHERE account_id = " + str(id) + " LIMIT 1;"
         await self.query(query)
+        return
+    
+    async def updatekickreason(self, caseid, reason):
+        query = "UPDATE `badnames` SET reason = %s WHERE id = " + caseid
+        await self.query(query, [reason])
         return
     
     async def updatewarnreason(self, caseid, reason):
