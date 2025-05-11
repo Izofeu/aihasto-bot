@@ -6,6 +6,8 @@ import discord
 import c_ui
 import datetime
 import notemanager
+import aimanager
+import asyncio
 
 class cmdmanager:
     def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager):
@@ -18,10 +20,29 @@ class cmdmanager:
         self.logm = log
         self.responsem = responsemanager
         self.notem = notemanager.notemanager(cfg, sql, responsemanager, log)
+        #self.aim = aimanager.aimanager(cfg)
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
+        
+    async def ai(self, context, prompt):
+        await context.defer(ephemeral = True)
+        response = await asyncio.to_thread(self.aim.generateprompt, context, prompt)
+        print(type(response))
+        print("\n\n")
+        print(response)
+        print("\n\n")
+        print(str(response))
+        if response.text is not None:
+            print("test1")
+            await self.responsem.respond(context, response.text)
+        else:
+            print("test2")
+            await self.responsem.respond(context, "Error: " + str(response.candidates[0].safety_ratings))
+            print(e)
+        
+        return
         
     async def kick(self, context, target, reason):
         author = getauthor(context)
@@ -225,9 +246,10 @@ class cmdmanager:
         addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
         addwarnui = c_ui.newwarnui(member, self.warns.addwarn, self.pm.canrun)
         kickui = c_ui.newkickui(member, self.pm.canrun, self.kick)
-        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui, kickui)
+        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui, kickui) if self.pm.ismember(member) else None
         response = await self.responsem.respond(context, message, view = punishmentbuttons)
-        punishmentbuttons.sethook(response)
+        if self.pm.ismember(member):
+            punishmentbuttons.sethook(response) 
         return
         
     async def temprole(self, context, target, mode, roletype, duration = False, reason = False):

@@ -38,14 +38,13 @@ class parseconfig:
         except:
             raise Exception("The key " + str(key) + " does not exist.")
             return False
-    def loadtoken(self):
+    def loadtoken(self, tokenfile):
         # Load bot token
         if not self.loaded:
             print("Config file is not loaded!")
             return False
         else:
             try:
-                tokenfile = self.get("tokenfile")
                 tokenfile = open(tokenfile, "rt")
                 token = tokenfile.read()
                 tokenfile.close()

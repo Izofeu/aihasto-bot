@@ -44,7 +44,7 @@ bot = discord.Bot(intents = intents, chunk_guilds_at_startup = False, max_messag
 cfg = configparse.parseconfig("config.cfg")
 cfg.load()
 # Load bot token
-token = cfg.loadtoken()
+token = cfg.loadtoken(cfg.get("tokenfile"))
 responsem = responsemanager.responsemanager(cfg)
 # Load up sql manager and permissions manager
 pm = permmanager.permmanager(cfg, bot, responsem)
@@ -233,13 +233,48 @@ async def editmodreason(context, message):
     await cmdm.openeditreasonmenu(context, message)
     return
     
+@bot.slash_command(description = "Ask Gemini AI.")
+@guild_only()
+@commands.cooldown(1, 20, commands.BucketType.user)
+async def ai(context, prompt: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "Prompt to the Gemini AI.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await context.respond("This command is disabled.", ephemeral = True)
+        return
+        await cmdm.ai(context, prompt)
+        return
+    
+@bot.slash_command(description = "Show punishments history of a user")
+@guild_only()
+async def showpunishments(context, member: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to show punishment history of."
+    )):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel, useroverride = True)
+    if not canrun:
+        return
+    await cmdm.showpunishmenthistory(context, member)
+    return
+    
 @bot.user_command(name = "Show punishments")
 @guild_only()
 async def showpunishments(context, member: discord.Member):
     # Command permission level
     commandpermissionlevel = 1
     # Permission check
-    canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel)
+    canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel, useroverride = True)
     if not canrun:
         return
     await cmdm.showpunishmenthistory(context, member)

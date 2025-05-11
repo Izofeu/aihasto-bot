@@ -90,3 +90,6 @@ class permmanager:
     async def throwerrorinteraction(self, context, reason):
         await context.response.send_message(reason, ephemeral = True)
         return
+        
+    def ismember(self, member):
+        return isinstance(member, discord.Member)

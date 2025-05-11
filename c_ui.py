@@ -72,7 +72,7 @@ class resolvereportbutton(discord.ui.View):
         except:
             await message.edit(view = self)
         await interaction.respond("Marked the report as resolved. Discord forces me to send this useless message else you get an error :slight_frown:.", ephemeral = True)
-        await self.sqlm.subtractreport(author.id)
+        await self.sqlm.subtractreport(targetid)
         return
         
     def sethook(self, hook):
