@@ -38,6 +38,21 @@ class reportui(discord.ui.Modal):
         await self.submitreport(interaction, self.message, reason, self.modthread)
         return
         
+class deleteai(discord.ui.View):
+    def __init__(self, pm):
+        super().__init__()
+        self.pm = pm
+    @discord.ui.button(label = "Delete", emoji = "❌", style = discord.ButtonStyle.primary)
+    async def button_callback(self, button, interaction):
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await self.pm.canrun(context = interaction, member = interaction.user, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        message = interaction.message
+        await message.delete()
+        return
+        
 class resolvereportbutton(discord.ui.View):
     def __init__(self, sqlm, responsem):
         super().__init__(timeout = None)

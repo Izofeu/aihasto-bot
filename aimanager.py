@@ -11,7 +11,7 @@ class aimanager:
             model = "gemini-2.0-flash",
             contents = prompt,
             config = types.GenerateContentConfig(
-                max_output_tokens = 900,
+                max_output_tokens = 1200,
                 safety_settings = [
                     types.SafetySetting(
                         category = "HARM_CATEGORY_HARASSMENT",
@@ -34,6 +34,16 @@ class aimanager:
                         threshold = "BLOCK_LOW_AND_ABOVE",
                     )
                     ]
+                )
+            )
+        return response
+        
+    def generatepromptnosafety(self, context, prompt):
+        response = self.aiclient.models.generate_content(
+            model = "gemini-2.0-flash",
+            contents = prompt,
+            config = types.GenerateContentConfig(
+                max_output_tokens = 1000
                 )
             )
         return response

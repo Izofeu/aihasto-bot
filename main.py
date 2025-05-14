@@ -214,9 +214,22 @@ async def checktemproles():
     await rolem.removeexpiredroles(datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
     return
     
+@bot.message_command(name = "Translate message")
+@guild_only()
+@commands.cooldown(2, 15, commands.BucketType.user)
+async def ai(context, message):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.ai(context, message.content, translate = True, public = False)
+    return
+    
 @bot.message_command(name = "Report message")
 @guild_only()
-@commands.cooldown(1, 20, commands.BucketType.user)
+@commands.cooldown(1, 10, commands.BucketType.user)
 async def reportmessage(context, message):
     await cmdm.reportmessage(context, message)
     return
@@ -235,11 +248,15 @@ async def editmodreason(context, message):
     
 @bot.slash_command(description = "Ask Gemini AI.")
 @guild_only()
-@commands.cooldown(1, 20, commands.BucketType.user)
+@commands.cooldown(2, 60, commands.BucketType.user)
 async def ai(context, prompt: discord.Option(
     discord.SlashCommandOptionType.string,
     required = True,
-    description = "Prompt to the Gemini AI.")
+    description = "Prompt to the Gemini AI."),
+    public: discord.Option(
+    discord.SlashCommandOptionType.boolean,
+    required = False,
+    description = "Should the response be public? Default is yes.")
     ):
         # Command permission level
         commandpermissionlevel = 1
@@ -247,9 +264,7 @@ async def ai(context, prompt: discord.Option(
         canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        await context.respond("This command is disabled.", ephemeral = True)
-        return
-        await cmdm.ai(context, prompt)
+        await cmdm.ai(context, prompt, public = public)
         return
     
 @bot.slash_command(description = "Show punishments history of a user")

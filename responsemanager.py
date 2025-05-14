@@ -4,7 +4,7 @@ class responsemanager:
     def __init__(self, cfg):
         self.cfg = cfg
         
-    async def respond(self, context, message = None, view = None, dmsuccess = True):
+    async def respond(self, context, message = None, view = None, dmsuccess = True, embed = None, ephemeral = True):
         if isinstance(context, commands.Context):
             author = context.author
         else:
@@ -15,20 +15,20 @@ class responsemanager:
         
         if isinstance(context, commands.Context):
             if view is not None:
-                response = await context.respond(message, view = view, ephemeral = True)
+                response = await context.respond(message, view = view, embed = embed, ephemeral = ephemeral)
             else:
-                response = await context.respond(message, ephemeral = True)
+                response = await context.respond(message, embed = embed, ephemeral = ephemeral)
         else:
             if context.response.is_done():
                 if view is not None:
-                    response = await context.followup.send(message, view = view, ephemeral = True)
+                    response = await context.followup.send(message, view = view, embed = embed, ephemeral = ephemeral)
                 else:
-                    response = await context.followup.send(message, ephemeral = True)
+                    response = await context.followup.send(message, embed = embed, ephemeral = ephemeral)
             else:
                 if view is not None:
-                    response = await context.response.send_message(message, view = view, ephemeral = True)
+                    response = await context.response.send_message(message, view = view, embed = embed, ephemeral = ephemeral)
                 else:
-                    response = await context.response.send_message(message, ephemeral = True)
+                    response = await context.response.send_message(message, embed = embed, ephemeral = ephemeral)
         return response
         
     async def dm(self, target, message = None, embed = None):
