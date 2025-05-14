@@ -256,7 +256,7 @@ async def ai(context, prompt: discord.Option(
     public: discord.Option(
     discord.SlashCommandOptionType.boolean,
     required = False,
-    description = "Should the response be public? Default is yes.")
+    description = "Should the response be public? Default is no.")
     ):
         # Command permission level
         commandpermissionlevel = 1

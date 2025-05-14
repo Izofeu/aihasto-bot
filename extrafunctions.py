@@ -116,6 +116,7 @@ def preparemessagelog(cfg, message):
         attachmentlinks += x.proxy_url + "\n"
     for x in message.stickers:
         stickers += x.url + "\n"
+        attachmentlinks = attachmentlinks[:1023]
     return preparedmessage, prepareddescription, preparedtitle, attachmentlinks, stickers
     
 def getguild(cfg, bot):
