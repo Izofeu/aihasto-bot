@@ -15,6 +15,7 @@ class sqlmanager:
         self.flooderrole = 1
         self.gladiatorrole = 2
         self.mrmustardrole = 3
+        self.argrole = 7
         
         self.kicksuccess = 1
         self.kickfailuredms = 2

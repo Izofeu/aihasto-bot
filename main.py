@@ -404,6 +404,73 @@ async def removemustard(context, target: discord.Option(
         await context.defer(ephemeral = True)
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.mrmustardrole)
         return
+        
+@bot.slash_command(description = "Mark which role is the Knows too much roles.")
+@guild_only()
+async def setargrole(context, arg: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as Knows too much role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            # Write new ids to config
+            cfg.set("argrole", arg.id)
+            await context.respond("Marked " + arg.name + " as Knows too much.")
+        except:
+            await pm.throwerror(context, "Error setting roles.")
+        return
+        
+@bot.slash_command(description = "Adds Knows too much to a user.")
+@guild_only()
+async def addarg(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Who to add the Knows too much role to."),
+    duration: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "The duration of the Knows too much. Examples: 30d - 30 days, 24h - 24 hours."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for issuing the Knows too much role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await context.defer(ephemeral = True)
+        await cmdm.temprole(context, target, rolem.addtemprole, rolem.argrole, duration = duration, reason = reason)
+        return
+        
+@bot.slash_command(description = "Removes Knows too much from a user.")
+@guild_only()
+async def removearg(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Who to remove the Knows too much role from."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for removing the Knows too much role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 3
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await context.defer(ephemeral = True)
+        await cmdm.temprole(context, target, rolem.removetemprole, rolem.argrole, reason = reason)
+        return
     
 @bot.slash_command(description = "Adds Mita's Gladiators to a user.")
 @guild_only()
