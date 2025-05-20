@@ -29,6 +29,7 @@ class logmanager:
         self.kicks = 11
         self.assignments = 12
         self.reportslimit = 13
+        self.verification = 14
         
         self.addrole = 1
         self.removerole = 2
@@ -106,6 +107,13 @@ class logmanager:
                 
                 caseid = await self.sqlm.addtimeout(target, context.id, date, reason)
                 embed.add_field(name = "Case ID", value = str(caseid), inline = False)
+        elif category == self.verification:
+            embed.color = discord.Colour.dark_green()
+            embed.title = "Unverify member"
+            if mode:
+                embed.title = "Verify member"
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
         elif category == self.reportslimit:
             embed.title = "Reports limit set"
             embed.color = discord.Colour.teal()
@@ -234,6 +242,8 @@ class logmanager:
                             pass
                     else:
                         await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
+                elif x.get("key") == "bypasses_verification":
+                    await self.sendlog(self.verification, context = mod, mode = x.get("new_value"), target = targetid)
         elif type == ban:
             await self.sendlog(self.bans, context = mod, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == kick:
