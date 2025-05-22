@@ -283,6 +283,18 @@ async def showpunishments(context, member: discord.Option(
     await cmdm.showpunishmenthistory(context, member)
     return
     
+@bot.user_command(name = "Ban member")
+@guild_only()
+async def showpunishments(context, member: discord.Member):
+    # Command permission level
+    commandpermissionlevel = 2
+    # Permission check
+    canrun = await pm.canrun(context, context.author, target = member, commandpermissionlevel = commandpermissionlevel, useroverride = True)
+    if not canrun:
+        return
+    await cmdm.banpopup(context, member)
+    return
+    
 @bot.user_command(name = "Show punishments")
 @guild_only()
 async def showpunishments(context, member: discord.Member):

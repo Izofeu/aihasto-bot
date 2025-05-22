@@ -28,6 +28,11 @@ class cmdmanager:
         self.bans = p_bans.bans(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
+    async def banpopup(self, context, target):
+        banui = c_ui.newbanui(target, self.pm.canrun, self.bans.ban)
+        await context.response.send_modal(banui)
+        return
+        
     async def ban(self, context, target, reason, unban = False):
         await context.defer(ephemeral = True)
         if unban:
