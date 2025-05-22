@@ -528,33 +528,6 @@ async def removegladiator(context, target: discord.Option(
         await cmdm.temprole(context, target, rolem.removetemprole, rolem.gladiatorrole, reason = reason)
         return
 
-@bot.slash_command(description = "Unbans a user with a reason.")
-@guild_only()
-async def unban(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
-    required = True,
-    description = "ID of a user to unban."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = True,
-    description = "Reason for the unban.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 2
-        # Permission check
-        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
-        if not canrun:
-            return
-        await context.defer(ephemeral = True)
-        try:
-            modreason = sanitizereason(context.author.name, reason = reason, unban = True)
-            await context.author.guild.unban(target, reason = modreason)
-            await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
-            await logm.sendlog(logm.unbans, context = context.author, target = target.id, reason = isemptyreason(reason))
-        except:
-            await pm.throwerror(context, "Couldn't unban the user with id " + str(target.id) + ". User may be unbanned already.")
-        return
-
 @bot.slash_command(description = "Toggles auto message curation of gif-party and miside-great-mita.")
 @guild_only()
 async def autopunishtoggle(context):
@@ -679,52 +652,6 @@ async def slowmode(context, target: discord.Option(
             return
         await context.defer(ephemeral = True)
         await cmdm.setslowmode(context, target, delay)
-        return
-    
-@bot.slash_command(description = "Time-out a user for any duration.")
-@guild_only()
-async def timeout(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
-    required = True,
-    description = "User to issue a time-out to."),
-    duration: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = True,
-    description = "The duration of a timeout. Examples: 2d - 2 days, 7m - 7 minutes, 3h - 3 hours."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = True,
-    description = "Reason for the timeout.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
-        if not canrun:
-            return
-        await context.defer(ephemeral = True)
-        await cmdm.timeout(context, target, duration, reason)
-        return
-        
-@bot.slash_command(description = "Removes a user from a time-out with a reason.")
-@guild_only()
-async def untimeout(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
-    required = True,
-    description = "User to issue a time-out to."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = False,
-    description = "Reason for the timeout.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, target=target, commandpermissionlevel=commandpermissionlevel)
-        if not canrun:
-            return
-        await context.defer(ephemeral = True)
-        await cmdm.timeout(context, target, duration = False, reason = reason, untimeout = True)
         return
         
 @bot.slash_command(description = "Toggles Content creator for a user.")

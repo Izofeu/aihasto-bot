@@ -210,6 +210,7 @@ class cmdmanager:
         await context.defer(ephemeral = True)
         history = await self.sqlm.getpunishments(member.id)
         kickstatus = await self.sqlm.getkick(member.id)
+        unbanstatus = await self.sqlm.getunban(member.id)
         #[0][0-1] - floodercount, flooders (issuer_id, issue_date, reason)
         #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason, issue_date)
         #[2][0-1] - timeoutcount, timeouts (issuer_id, expiration_date, issue_date, reason)
@@ -219,19 +220,19 @@ class cmdmanager:
             message = "User <@" + str(member.id) + "> has received following punishments:"
             for flooder in history[0][1]:
                 date, timestamp = sqldatetodateobject(flooder[1])
-                message += "\n:ocean: <t:" + str(timestamp) + ":R> - <@" + str(flooder[0]) + "> - " + flooder[2]
+                message = await self.responsem.sendpartial(context, message, "\n:ocean: <t:" + str(timestamp) + ":R> - <@" + str(flooder[0]) + "> - " + flooder[2], 1300)
                 
             for warn in history[1][1]:
                 date, timestamp = sqldatetodateobject(warn[1])
                 issuedate, issuetimestamp = sqldatetodateobject(warn[3])
                 diffstr = gettimedifferencestr(date, issuedate)
-                message += "\n:warning: <t:" + str(issuetimestamp) + ":R> - " + diffstr + " - <@" + str(warn[0]) + "> - " + warn[2]
+                message = await self.responsem.sendpartial(context, message, "\n:warning: <t:" + str(issuetimestamp) + ":R> - " + diffstr + " - <@" + str(warn[0]) + "> - " + warn[2], 1300)
                 
             for timeout in history[2][1]:
                 expirationdate, expirationtimestamp = sqldatetodateobject(timeout[1])
                 issuedate, issuetimestamp = sqldatetodateobject(timeout[2])
                 timediff = gettimedifferencestr(expirationdate, issuedate)
-                message += "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3]
+                message = await self.responsem.sendpartial(context, message, "\n:mute: <t:" + str(issuetimestamp) + ":R> - " + timediff + " - <@" + str(timeout[0]) + "> - " + timeout[3], 1300)
                 
         message += "\n"
         
@@ -239,12 +240,12 @@ class cmdmanager:
         if count == 0:
             message += "\nUser <@" + str(member.id) + "> has no temproles active."
         else:
-            message += "\nUser <@" + str(member.id) + "> has following temproles active:"
+            message = await self.responsem.sendpartial(context, message, "\nUser <@" + str(member.id) + "> has following temproles active:", 1300)
             # `issuer_id`, `expiration_date`, `role_type`, `reason`
             for record in nonremovedroles:
                 _, timestamp = sqldatetodateobject(record[1])
                 roleid = self.rolem.getroleid(record[2])
-                message += "\n<@&" + str(roleid) + "> - expires <t:" + str(timestamp) + ":R> - <@" + str(record[0]) + "> - " + record[3]
+                message = await self.responsem.sendpartial(context, message, "\n<@&" + str(roleid) + "> - expires <t:" + str(timestamp) + ":R> - <@" + str(record[0]) + "> - " + record[3], 1300)
                 
         message += "\n"
         
@@ -255,15 +256,23 @@ class cmdmanager:
             message += ":warning: Failed (DMs off) - <@" + str(kickstatus[0][2]) + "> - " + kickstatus[0][1]
         else:
             message += ":white_check_mark: Yes - <@" + str(kickstatus[0][2]) + "> - " + kickstatus[0][1]
+            
+        message = await self.responsem.sendpartial(context, message, "\n\nUnbanned before (logged since 2025-05-22): ", 1300)
+        if not unbanstatus:
+            message += ":x: No"
+        else:
+            message += ":white_check_mark: Yes - <@" + str(unbanstatus[0][1]) + "> - " + unbanstatus[0][0]
                 
         addflooderui = c_ui.newflooderui(member, self.rolem, self.pm.canrun)
         addtimeoutui = c_ui.newtimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
         addwarnui = c_ui.newwarnui(member, self.warns.addwarn, self.pm.canrun)
         kickui = c_ui.newkickui(member, self.pm.canrun, self.kick)
-        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui, kickui) if self.pm.ismember(member) else None
+        banui = c_ui.newbanui(member, self.pm.canrun, self.bans.ban)
+        unbanui = c_ui.newunbanui(member, self.pm.canrun, self.bans.unban)
+        untimeoutui = c_ui.newuntimeoutui(member, self.timeouts.issuetimeout, self.pm.canrun)
+        punishmentbuttons = c_ui.punishmentbuttons(self.pm, member, addwarnui, addtimeoutui, addflooderui, kickui, banui, unbanui, untimeoutui) # if self.pm.ismember(member) else None
         response = await self.responsem.respond(context, message, view = punishmentbuttons)
-        if self.pm.ismember(member):
-            punishmentbuttons.sethook(response) 
+        punishmentbuttons.sethook(response) 
         return
         
     async def temprole(self, context, target, mode, roletype, duration = False, reason = False):
@@ -330,6 +339,8 @@ class cmdmanager:
                 await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "badnames")
             elif title == "Unban":
                 await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "unbans")
+            elif title == "Ban":
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "bans")
             responsemessage += " Edited the database record."
         await self.logm.editembed(message, embed)
         await self.responsem.respond(context, responsemessage)

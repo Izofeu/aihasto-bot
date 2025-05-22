@@ -181,6 +181,7 @@ class sqlmanager:
             # Return the query result
         except Exception as e:
             print(e)
+            print(query)
         finally:
             if not maintainconnection:
                 self.lock.release()
@@ -188,6 +189,11 @@ class sqlmanager:
         
     async def insertban(self, id, issuer_id, reason):
         query = "INSERT INTO `bans` (account_id, issuer_id, issue_date, reason) VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + getdatefordb() + "', %s)"
+        _, caseid = await self.query(query, [reason])
+        return caseid
+        
+    async def insertunban(self, id, issuer_id, reason):
+        query = "INSERT INTO `unbans` (account_id, issuer_id, issue_date, reason) VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + getdatefordb() + "', %s)"
         _, caseid = await self.query(query, [reason])
         return caseid
     
@@ -199,6 +205,11 @@ class sqlmanager:
     
     async def getkick(self, id):
         query = "SELECT kicktype, reason, issuer_id FROM `badnames` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1"
+        result, _ = await self.query(query, maintainconnection = True, connect = False)
+        return result
+        
+    async def getunban(self, id):
+        query = "SELECT reason, issuer_id FROM `unbans` WHERE account_id = " + str(id) + " ORDER BY id DESC LIMIT 1"
         result, _ = await self.query(query, maintainconnection = True, connect = False)
         return result
     
@@ -226,8 +237,8 @@ class sqlmanager:
         return
     
     async def updatecasereason(self, caseid, reason, tablename):
-        query = "UPDATE %s SET reason = %s WHERE id = " + caseid
-        await self.query(query, [tablename, reason])
+        query = "UPDATE `" + tablename + "` SET reason = %s WHERE id = " + str(caseid)
+        await self.query(query, [reason])
         return
     
     async def getroot(self, notetype):

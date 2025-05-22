@@ -4,44 +4,53 @@ class bans:
     def __init__(self, cfg, bot, pm, log, sql, responsem):
         self.cfg = cfg
         self.bot = bot
-        self.pm = permmanager
+        self.pm = pm
         self.logm = log
         self.sqlm = sql
         self.responsem = responsem
         
     async def ban(self, context, target, reason, deletemessages):
+        author = getauthor(context)
         # Command permission level
         commandpermissionlevel = 2
         # Permission check
-        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+        canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True)
         if not canrun:
             return
-        author = getauthor(context)
         banreason = sanitizereason(author.name, reason = reason, ban = True)
         secondscount = 86400 if deletemessages else 0
         try:
-            await author.guild.ban(target, secoundscount, banreason)
-        except:
-            await self.responsem.respond(context, ":x: Couldn't ban the user! The user either left the server, or I don't have sufficient permissions!")
+            await author.guild.fetch_ban(target)
+            await self.responsem.respond(context, ":x: The user is already banned!")
             return
-        await self.logm.sendlog(logm.bans, context = author, target = target.id, reason = isemptyreason(reason))
-        await self.responsem.respond(context, ":white_check_mark: Successfully banned <@" + str(target.id) + ">!")
+        except:
+            pass
+        try:
+            dmsuccess = await self.responsem.dm(target, (":x: You have been banned from AIHASTO by " + str(author.name) + " for " + isemptyreason(reason) + ".\n" +
+            "To appeal the ban, add either the ban issuer or one of the following admins to your friends list: `goldautumnleaf`, `illidaaan`, `doxx.me` ."))
+            await author.guild.ban(target, delete_message_seconds = secondscount, reason = banreason)
+        except Exception as e:
+            print(e)
+            await self.responsem.respond(context, ":x: Couldn't ban the user! I don't have sufficient permissions!")
+            return
+        await self.logm.sendlog(self.logm.bans, context = author, target = target.id, reason = isemptyreason(reason))
+        await self.responsem.respond(context, ":white_check_mark: Successfully banned <@" + str(target.id) + ">!", dmsuccess = dmsuccess)
         return
         
     async def unban(self, context, target, reason):
+        author = getauthor(context)
         # Command permission level
         commandpermissionlevel = 3
         # Permission check
-        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        canrun = await self.pm.canrun(context, author, commandpermissionlevel = commandpermissionlevel)
         if not canrun:
             return
-        author = getauthor(context)
         unbanreason = sanitizereason(author.name, reason = reason, unban = True)
         try:
-            await author.guild.unban(target, unbanreason)
+            await author.guild.unban(target, reason = unbanreason)
         except:
             await self.responsem.respond(context, ":x: Couldn't unban the user! The user isn't banned!")
             return
-        await self.logm.sendlog(logm.unbans, context = author, target = target.id, reason = isemptyreason(reason))
+        await self.logm.sendlog(self.logm.unbans, context = author, target = target.id, reason = isemptyreason(reason))
         await self.responsem.respond(context, ":white_check_mark: Successfully unbanned <@" + str(target.id) + ">!")
         return

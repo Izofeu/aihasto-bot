@@ -164,6 +164,8 @@ class logmanager:
             embed.color = discord.Colour.green()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            caseid = await self.sqlm.insertunban(target, context.id, reason)
+            embed.add_field(name = "Case ID", value = str(caseid), inline = False)
         elif category == self.temproles:
             embed.description = "Role: <@&" + str(role.id) + ">\nReason: " + reason
             embed.color = discord.Colour.dark_blue()
@@ -181,7 +183,7 @@ class logmanager:
             embed.color = discord.Colour.dark_red()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-            caseid = await self.sqlm.insertban(context.id, target, reason)
+            caseid = await self.sqlm.insertban(target, context.id, reason)
             embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             #log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
         elif category == self.kicks:

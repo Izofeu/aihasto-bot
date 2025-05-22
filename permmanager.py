@@ -24,23 +24,24 @@ class permmanager:
             # Check permission level of the user who ran the command
             inituser_permissionlevel = await self.getpermissionlevel(member, reliable = False)
             if inituser_permissionlevel < commandpermissionlevel:
-                await self.responsem.respond(context, "You do not have enough permissions to run this command.")
+                await self.responsem.respond(context, (":x: You do not have enough permissions to run this command. Required level: " + str(commandpermissionlevel) + 
+                ", your level: " + str(inituser_permissionlevel) + ". (**/getperms**)"))
                 return False
             # If a command affects another user, perform a hierarchy check
             if target:
                 if not isinstance(target, discord.Member):
                     if useroverride:
                         return True
-                    await self.responsem.respond(context, "User <@" + str(target.id) + "> has left the server.")
+                    await self.responsem.respond(context, ":x: User <@" + str(target.id) + "> has left the server.")
                     return False
                 if target.bot:
-                    await self.responsem.respond(context, "The target mustn't be a bot.")
+                    await self.responsem.respond(context, ":x: The target mustn't be a bot.")
                     return False
                 targetuser_permissionlevel = await self.getpermissionlevel(target)
                 if targetuser_permissionlevel >= inituser_permissionlevel:
                     if shoulderoverride:
                         return True
-                    await self.responsem.respond(context, "The target user needs to be lower than your highest role.")
+                    await self.responsem.respond(context, ":x: The target user needs to be lower than your highest role.")
                     return False
         except:
             return False

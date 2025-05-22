@@ -100,25 +100,6 @@ class resolvereportbutton(discord.ui.View):
     #    await message.delete()
     #    return
         
-class showwarnsbutton(discord.ui.View):
-    @discord.ui.button(label = "Show all warns", style = discord.ButtonStyle.primary)
-    async def button_callback(self, button, interaction):
-        self.disable_all_items()
-        await interaction.response.edit_message(view = self)
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await self.pm.canrun(context = interaction, member = interaction.user, commandpermissionlevel = commandpermissionlevel, interaction = True)
-        if not canrun:
-            return
-        await interaction.followup.send(await self.getwarningmessage(self.target), ephemeral = True)
-    def __init__(self, pm, getwarningmessage, target):
-        # Run init function of discord.ui.View before initializing our variables
-        super().__init__()
-        self.pm = pm
-        self.getwarningmessage = getwarningmessage
-        self.target = target
-        
 class editreasonui(discord.ui.Modal):
     def __init__(self, message, cmdm):
         super().__init__(title = "Edit mod reason")
@@ -215,6 +196,54 @@ class newkickui(discord.ui.Modal):
         self.kick = kick
         self.add_item(discord.ui.InputText(label = "Reason", required = True, placeholder = "Bad name / bio / pronouns...", max_length = 511))
         
+class newbanui(discord.ui.Modal):
+    async def callback(self, interaction):
+        await interaction.response.defer()
+        reason = self.children[0].value
+        deletemessages = self.children[1].value
+        deletemessages = True if deletemessages in ["Y", "y"] else False
+        await self.ban(interaction, self.target, reason, deletemessages)
+            
+    def __init__(self, target, canrun, ban):
+        super().__init__(title = "Ban user")
+        self.canrun = canrun
+        self.target = target
+        self.ban = ban
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
+        self.add_item(discord.ui.InputText(label = "Delete messages (Y/n)", required = True, value = "Y", max_length = 1, min_length = 1))
+        
+class newunbanui(discord.ui.Modal):
+    async def callback(self, interaction):
+        await interaction.response.defer()
+        reason = self.children[0].value
+        await self.unban(interaction, self.target, reason)
+            
+    def __init__(self, target, canrun, unban):
+        super().__init__(title = "Unban user")
+        self.canrun = canrun
+        self.target = target
+        self.unban = unban
+        self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
+        
+class newuntimeoutui(discord.ui.Modal):
+    async def callback(self, interaction):
+        await interaction.response.defer()
+        # Command permission level
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await self.canrun(interaction, interaction.user, target = self.target, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        reason = self.children[0].value
+        await self.addtimeout(interaction, self.target, duration = None, reason = reason, untimeout = True)
+
+    def __init__(self, target, addtimeout, canrun):
+        super().__init__(title = "Remove timeout")
+        self.canrun = canrun
+        self.target = target
+        self.addtimeout = addtimeout
+        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+        
 class punishmentbuttons(discord.ui.View):
     @discord.ui.button(label = "Warn", emoji = "⚠️", style = discord.ButtonStyle.primary)
     async def addwarn_callback(self, button, interaction):
@@ -248,6 +277,24 @@ class punishmentbuttons(discord.ui.View):
         kickui = self.kickui
         await interaction.response.send_modal(kickui)
         
+    @discord.ui.button(label = "Ban", emoji = "⛔", style = discord.ButtonStyle.danger, row = 1)
+    async def ban_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        banui = self.banui
+        await interaction.response.send_modal(banui)
+        
+    @discord.ui.button(label = "Unban", emoji = "✅", style = discord.ButtonStyle.success, row = 1)
+    async def unban_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        unbanui = self.unbanui
+        await interaction.response.send_modal(unbanui)
+        
+    @discord.ui.button(label = "Untimeout", emoji = "🔉", style = discord.ButtonStyle.success, row = 1)
+    async def untimeout_callback(self, button, interaction):
+        await self.disableallbuttons(interaction)
+        untimeoutui = self.untimeoutui
+        await interaction.response.send_modal(untimeoutui)
+        
     async def disableallbuttons(self, interaction):
         self.disable_all_items()
         await self.hook.edit(view = self)
@@ -256,12 +303,15 @@ class punishmentbuttons(discord.ui.View):
     def sethook(self, hook):
         self.hook = hook
         
-    def __init__(self, permmanager, target, warnui, timeoutui, flooderui, kickui):
+    def __init__(self, permmanager, target, warnui, timeoutui, flooderui, kickui, banui, unbanui, untimeoutui):
         super().__init__(timeout = 60)
         self.target = target
         self.warnui = warnui
         self.timeoutui = timeoutui
         self.flooderui = flooderui
         self.kickui = kickui
+        self.banui = banui
+        self.unbanui = unbanui
+        self.untimeoutui = untimeoutui
         self.hook = None
         self.pm = permmanager
