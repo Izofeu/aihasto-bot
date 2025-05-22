@@ -1,6 +1,7 @@
 from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp, sanitizereason, getdatefordb
 import p_timeouts
 import p_warns
+import p_bans
 import g_slowmodes
 import discord
 import c_ui
@@ -24,7 +25,16 @@ class cmdmanager:
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
+        self.bans = p_bans.bans(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
+        
+    async def ban(self, context, target, reason, unban = False):
+        await context.defer(ephemeral = True)
+        if unban:
+            await self.bans.unban(context, target, reason)
+        else:
+            await self.bans.ban(context, target, reason)
+        return
         
     async def ai(self, context, prompt, translate = False, public = True):
         ephemeral = False if public is True else True
@@ -38,7 +48,7 @@ class cmdmanager:
         if response.text is not None:
             text = response.text
             if len(text) > 4000:
-                text = text[:4000]
+                text = text[:3900]
                 text += ":x: Hit the character limit for the answer."
             embed = discord.Embed(title = "Gemini AI's response", color = discord.Colour.blurple())
             embed.description = text
@@ -311,17 +321,16 @@ class cmdmanager:
         responsemessage = "Successfully edited the embed."
         if caseid:
             if title == "Warn":
-                await self.sqlm.updatewarnreason(caseid, isemptyreason(reason))
-                responsemessage += " Edited the database record."
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "newwarns")
             elif title == "Timeout add":
-                await self.sqlm.updatetimeoutreason(caseid, isemptyreason(reason))
-                responsemessage += " Edited the database record."
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "timeouts")
             elif title == "Add temprole":
-                await self.sqlm.updatetemprolereason(caseid, isemptyreason(reason))
-                responsemessage += " Edited the database record."
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "temproles")
             elif title == "Kick":
-                await self.sqlm.updatekickreason(caseid, isemptyreason(reason))
-                responsemessage += " Edited the database record."
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "badnames")
+            elif title == "Unban":
+                await self.sqlm.updatecasereason(caseid, isemptyreason(reason), "unbans")
+            responsemessage += " Edited the database record."
         await self.logm.editembed(message, embed)
         await self.responsem.respond(context, responsemessage)
         return

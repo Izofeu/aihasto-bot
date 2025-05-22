@@ -181,6 +181,8 @@ class logmanager:
             embed.color = discord.Colour.dark_red()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            caseid = await self.sqlm.insertban(context.id, target, reason)
+            embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             #log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
         elif category == self.kicks:
             embed.title = "Kick"
@@ -200,7 +202,7 @@ class logmanager:
             raise Exception("No log channel defined.")
         return
         
-    async def parserawauditlogentry(self, logentry, recentunbans, recenttimeouts):
+    async def parserawauditlogentry(self, logentry):
         modid = logentry.user_id
         targetid = logentry.target_id
         
@@ -224,22 +226,18 @@ class logmanager:
         if mod.bot:
             return
         if type == unban:
-            try:
-                recentunbans.index(target.id)
-                return
-            except:
-                await self.sendlog(self.unbans, context = mod, target = targetid, mode = self.noreason, reason = isemptyreason(""))
+            await self.sendlog(self.unbans, context = mod, target = targetid, mode = self.noreason, reason = isemptyreason(""))
         elif type == member_update:
             for x in logentry.changes:
                 if x.get("key") == "communication_disabled_until":
                     if x.get("new_value"):
                         date, timestamp = discorddatetodateobject(x.get("new_value"))
-                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason))
                         try:
                             member = await self.guild.fetch_member(targetid)
                             await self.responsem.dm(member, "You have been timed out by <@" + str(mod.id) + "> for " + isemptyreason(logentry.reason) + " until <t:" + str(timestamp) + ":F>.")
                         except:
                             pass
+                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason))
                     else:
                         await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
                 elif x.get("key") == "bypasses_verification":

@@ -56,7 +56,7 @@ cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
 
 @bot.event
 async def on_raw_audit_log_entry(entry):
-    await logm.parserawauditlogentry(entry, recentunbans, recenttimeouts)
+    await logm.parserawauditlogentry(entry)
     return
         
 @bot.event
@@ -548,21 +548,10 @@ async def unban(context, target: discord.Option(
         await context.defer(ephemeral = True)
         try:
             modreason = sanitizereason(context.author.name, reason = reason, unban = True)
-            recentunbans.append(target.id)
             await context.author.guild.unban(target, reason = modreason)
             await context.respond("User with id " + str(target.id) + " (<@" + str(target.id) + ">) has been unbanned.")
             await logm.sendlog(logm.unbans, context = context.author, target = target.id, reason = isemptyreason(reason))
-            sec10 = datetime.datetime.now() + datetime.timedelta(seconds = 10)
-            await discord.utils.sleep_until(sec10)
-            try:
-                recentunbans.remove(target.id)
-            except:
-                pass
         except:
-            try:
-                recentunbans.remove(target.id)
-            except:
-                pass
             await pm.throwerror(context, "Couldn't unban the user with id " + str(target.id) + ". User may be unbanned already.")
         return
 

@@ -1,6 +1,7 @@
 import asyncio
 import aiomysql as sqlm
 import datetime
+from extrafunctions import getdatefordb
 
 class sqlmanager:
     def __init__(self, cfg):
@@ -140,6 +141,30 @@ class sqlmanager:
                 ");"
                 )
                 await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `unbans`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL," +
+                "`issue_date` DATETIME NULL," +
+                "`reason` varchar(512) NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `bans`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL," +
+                "`issue_date` DATETIME NULL," +
+                "`reason` varchar(512) NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
                 self.firstRun = False
             # Execute our query
             if params:
@@ -160,6 +185,11 @@ class sqlmanager:
             if not maintainconnection:
                 self.lock.release()
         return result, rowid
+        
+    async def insertban(self, id, issuer_id, reason):
+        query = "INSERT INTO `bans` (account_id, issuer_id, issue_date, reason) VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + getdatefordb() + "', %s)"
+        _, caseid = await self.query(query, [reason])
+        return caseid
     
     async def insertkick(self, id, issuer_id, date, reason, waskicked):
         kicktype = self.kicksuccess if waskicked else self.kickfailuredms
@@ -195,24 +225,9 @@ class sqlmanager:
         await self.query(query)
         return
     
-    async def updatekickreason(self, caseid, reason):
-        query = "UPDATE `badnames` SET reason = %s WHERE id = " + caseid
-        await self.query(query, [reason])
-        return
-    
-    async def updatewarnreason(self, caseid, reason):
-        query = "UPDATE `newwarns` SET reason = %s WHERE id = " + caseid
-        await self.query(query, [reason])
-        return
-        
-    async def updatetimeoutreason(self, caseid, reason):
-        query = "UPDATE `timeouts` SET reason = %s WHERE id = " + caseid
-        await self.query(query, [reason])
-        return
-        
-    async def updatetemprolereason(self, caseid, reason):
-        query = "UPDATE `temproles` SET reason = %s WHERE id = " + caseid
-        await self.query(query, [reason])
+    async def updatecasereason(self, caseid, reason, tablename):
+        query = "UPDATE %s SET reason = %s WHERE id = " + caseid
+        await self.query(query, [tablename, reason])
         return
     
     async def getroot(self, notetype):
