@@ -31,8 +31,7 @@ class bans:
         "When appealing the ban, provide the following Case ID: " + str(caseid) + ".\n" +
         "Server rules can be accessed at this link: " + self.cfg.get("ruleslink") + ""))
         try:
-            #await author.guild.ban(target, delete_message_seconds = secondscount, reason = banreason)
-            pass
+            await author.guild.ban(target, delete_message_seconds = secondscount, reason = banreason)
         except Exception as e:
             print(e)
             await self.responsem.respond(context, ":x: Couldn't ban the user! I don't have sufficient permissions!")
