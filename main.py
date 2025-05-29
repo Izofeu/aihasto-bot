@@ -246,6 +246,18 @@ async def editmodreason(context, message):
     await cmdm.openeditreasonmenu(context, message)
     return
     
+@bot.message_command(name = "Delete mod action")
+@guild_only()
+async def deletemodaction(context, message):
+    # Command permission level
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.opendeletemodcasemenu(context, message)
+    return
+    
 @bot.slash_command(description = "Ask Gemini AI.")
 @guild_only()
 @commands.cooldown(2, 60, commands.BucketType.user)
@@ -557,26 +569,26 @@ async def autopunishtoggle(context):
         await context.respond("Disabled auto message curation of gif-party and miside-great-mita.")
     return
 
-@bot.slash_command(description = "Removes all warnings from a user.")
-@guild_only()
-async def clearwarns(context, target: discord.Option(
-    discord.SlashCommandOptionType.user,
-    required = True,
-    description = "User to remove warnings from."),
-    reason: discord.Option(
-    discord.SlashCommandOptionType.string,
-    required = False,
-    description = "Reason for removing the warnings.")
-    ):
-        # Command permission level
-        commandpermissionlevel = 1
-        # Permission check
-        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
-        if not canrun:
-            return
-        await context.defer(ephemeral = True)
-        await cmdm.warn(context, target, reason, True)
-        return
+#@bot.slash_command(description = "Removes all warnings from a user.")
+#@guild_only()
+#async def clearwarns(context, target: discord.Option(
+#    discord.SlashCommandOptionType.user,
+#    required = True,
+#    description = "User to remove warnings from."),
+#    reason: discord.Option(
+#    discord.SlashCommandOptionType.string,
+#    required = False,
+#    description = "Reason for removing the warnings.")
+#    ):
+#        # Command permission level
+#        commandpermissionlevel = 1
+#        # Permission check
+#        canrun = await pm.canrun(context, context.author, target = target, commandpermissionlevel = commandpermissionlevel)
+#        if not canrun:
+#            return
+#        await context.defer(ephemeral = True)
+#        await cmdm.warn(context, target, reason, True)
+#        return
     
 #@bot.slash_command(description = "Issue a warning to a user. Warnings auto-expire after 3 days.")
 #@guild_only()
@@ -664,6 +676,50 @@ async def slowmode(context, target: discord.Option(
             return
         await context.defer(ephemeral = True)
         await cmdm.setslowmode(context, target, delay)
+        return
+        
+@bot.slash_command(description = "Toggles Speedrunner for a user.")
+@guild_only()
+async def speedrunner(context, target: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "User to toggle a Speedrunner role for."),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for toggling the Speedrunner role.")
+    ):
+        # Command permission level
+        permissionlevel = await pm.getpermissionlevel(context.author)
+        if not pm.hasrole(context.author, cfg.get("speedrunnermanagerrole")) and permissionlevel < 4:
+            await pm.throwerror(context, "Only Speedrunner managers can run this command.")
+            return
+        await cmdm.role(context = context, target = target, role = rolem.speedrunnerrole, reason = reason)
+        return
+        
+@bot.slash_command(description = "Mark which roles are Speedrunner roles.")
+@guild_only()
+async def setspeedrunnerroles(context, speedrunnermanager: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Speedrunner Manager role."),
+    speedrunner: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as a Speedrunner role.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        try:
+            cfg.set("speedrunnermanagerrole", speedrunnermanager.id)
+            cfg.set("speedrunnerrole", speedrunner.id)
+            await context.respond("Marked " + speedrunnermanager.name + " as Speedrunner manager and " + speedrunner.name + " as Speedrunner.")
+        except:
+            await pm.throwerror(context, "Error setting roles.")
         return
         
 @bot.slash_command(description = "Toggles Content creator for a user.")

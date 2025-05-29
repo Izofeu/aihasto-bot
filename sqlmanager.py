@@ -240,6 +240,11 @@ class sqlmanager:
         query = "UPDATE `" + tablename + "` SET reason = %s WHERE id = " + str(caseid)
         await self.query(query, [reason])
         return
+        
+    async def deletecase(self, caseid, tablename):
+        query = "DELETE FROM `" + tablename + "` WHERE id = " + str(caseid)
+        await self.query(query)
+        return
     
     async def getroot(self, notetype):
         query = "SELECT DISTINCT account_id FROM notes WHERE notetype = " + str(notetype) + " AND isroot = 1"

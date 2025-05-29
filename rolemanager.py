@@ -17,6 +17,7 @@ class rolemanager:
         self.handrole = 5
         self.contentcreatorrole = 6
         self.argrole = 7
+        self.speedrunnerrole = 8
         
     def getroleid(self, rolemode):
         if rolemode == self.sqlm.flooderrole:
@@ -33,6 +34,8 @@ class rolemanager:
             roleid = self.cfg.get("contentcreatorrole")
         elif rolemode == self.argrole:
             roleid = self.cfg.get("argrole")
+        elif rolemode == self.speedrunnerrole:
+            roleid = self.cfg.get("speedrunnerrole")
         return roleid
         
     async def fetchroleandmember(self, rolemode, memberid):

@@ -22,7 +22,8 @@ class warns:
         issuedate = getdatefordb()
         modreason = isemptyreason(reason)
         caseid = await self.sqlm.addwarning(author.id, target.id, issuedate, untildate, modreason)
-        dmsuccess = await self.responsem.dm(target, "You have been issued a warning by <@" + str(author.id) + "> for " + modreason + ". This warning expires at <t:" + str(timestamp) + ":F>.")
+        dmsuccess = await self.responsem.dm(target, (":warning: You have been issued a warning by <@" + str(author.id) + "> for " + modreason +
+        " (Case ID: " + str(caseid) + "). This warning expires at <t:" + str(timestamp) + ":F>."))
         await self.responsem.respond(context, "User <@" + str(target.id) + "> has been issued a warning for " + isemptyreason(reason) + ".", dmsuccess = dmsuccess)
         await self.logm.sendlog(self.logm.warns, author, mode = self.logm.addwarn, target = target, reason = modreason, caseid = caseid, duration = timestamp)
         return

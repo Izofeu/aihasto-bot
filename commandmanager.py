@@ -294,15 +294,74 @@ class cmdmanager:
         await context.send_modal(editreasonmenu)
         return
         
-    async def editreason(self, context, message, reason):
+    async def opendeletemodcasemenu(self, context, message):
+        deletemodcasemenu = c_ui.deletecaseui(message, self)
+        await context.send_modal(deletemodcasemenu)
+        return
+        
+    async def deletemodcase(self, context, message, deletereason):
         author = getauthor(context)
         if not amiauthor(message, self.cfg.get("botid")):
-            await self.responsem.respond(context, "Only messages sent by me can be edited.")
+            await self.responsem.respond(context, ":x: Only punishments issued by me can be deleted.")
             return
         try:
             embed = message.embeds[0]
         except:
-            await self.responsem.respond(context, "This message doesn't have embeds.")
+            await self.responsem.respond(context, ":x: This message doesn't have embeds.")
+            return
+        editables = ["Warn"]
+        deletereason = isemptyreason(deletereason)
+        if embed.title in editables:
+            caseid = issuerid = editedreason = targetid = None
+            for field in embed.fields:
+                if field.name == "Case ID":
+                    caseid = field.value
+                elif field.name == "Edited reason":
+                    editedreason = field.value
+                elif field.name == "Issuer":
+                    issuerid = field.value
+                elif field.name == "Target":
+                    targetid = field.value
+            if not caseid or not issuerid:
+                await self.responsem.respond(context, ":x: This message doesn't have an Issuer / Case ID field so it cannot be deleted.")
+                return
+            issuerid = issuerid[2:-1]
+            issuerid = int(issuerid)
+            if author.id != issuerid:
+                permlevel = await self.pm.getpermissionlevel(author)
+                if permlevel < 3:
+                    await self.responsem.respond(context, ":x: You are not the author of this punishment. Ask Mita's Arms for assistance.")
+                    return
+            if embed.title == "Warn":
+                await self.sqlm.deletecase(caseid, "newwarns")
+                reason = editedreason if editedreason else embed.description
+                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = deletereason)
+                await message.delete()
+                dmsuccess = True
+                if targetid:
+                    targetid = targetid[2:-1]
+                    guild = getguild(self.cfg, self.bot)
+                    try:
+                        member = await guild.fetch_member(targetid)
+                        dmsuccess = await self.responsem.dm(member, (":white_check_mark: Your warning with Case ID " + str(caseid) + " has been removed by <@" + str(author.id) + "> " +
+                        "for " + deletereason + "."))
+                    except:
+                        pass
+                await self.responsem.respond(context, ":white_check_mark: Mod action deleted successfully.", dmsuccess = dmsuccess)
+                return
+        else:
+            await self.responsem.respond(context, ":x: " + embed.title + " actions cannot be deleted.\nDeletable actions: " + str(editables) + ".")
+            return
+        
+    async def editreason(self, context, message, reason):
+        author = getauthor(context)
+        if not amiauthor(message, self.cfg.get("botid")):
+            await self.responsem.respond(context, ":x: Only messages sent by me can be edited.")
+            return
+        try:
+            embed = message.embeds[0]
+        except:
+            await self.responsem.respond(context, ":x: This message doesn't have embeds.")
             return
         title = embed.title
         fields = embed.fields
@@ -321,13 +380,13 @@ class cmdmanager:
                     if author.id != issuerid:
                         permlevel = await self.pm.getpermissionlevel(author)
                         if permlevel < 3:
-                            await self.responsem.respond(context, "You are not the author of this punishment. Ask Mita's Arms for assistance.")
+                            await self.responsem.respond(context, ":x: You are not the author of this punishment. Ask Mita's Arms for assistance.")
                             return
                 except:
-                    await self.responsem.respond(context, "Couldn't fetch permissions for embed edit.")
+                    await self.responsem.respond(context, ":x: Couldn't fetch permissions for embed edit.")
                     return False
         if not foundfield:
-            await self.responsem.respond(context, "This message doesn't have an Issuer field so its reason cannot be edited.")
+            await self.responsem.respond(context, ":x: This message doesn't have an Issuer field so its reason cannot be edited.")
             return
         if alreadyedited:
             embed.remove_field(0)

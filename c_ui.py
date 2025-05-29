@@ -108,8 +108,22 @@ class editreasonui(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label = "Reason", required = True, max_length = 511))
     
     async def callback(self, interaction):
+        await interaction.response.defer()
         reason = self.children[0].value
         await self.cmdm.editreason(interaction, self.message, reason)
+        return
+        
+class deletecaseui(discord.ui.Modal):
+    def __init__(self, message, cmdm):
+        super().__init__(title = "Delete mod action")
+        self.message = message
+        self.cmdm = cmdm
+        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+    
+    async def callback(self, interaction):
+        await interaction.response.defer()
+        reason = self.children[0].value
+        await self.cmdm.deletemodcase(interaction, self.message, reason)
         return
         
 class newflooderui(discord.ui.Modal):

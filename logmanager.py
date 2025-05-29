@@ -30,6 +30,7 @@ class logmanager:
         self.assignments = 12
         self.reportslimit = 13
         self.verification = 14
+        self.deletemodaction = 15
         
         self.addrole = 1
         self.removerole = 2
@@ -152,6 +153,12 @@ class logmanager:
                 embed.title = "Clear all warns"
             else:
                 embed.title = "Clear self-issued warns"
+        elif category == self.deletemodaction:
+            embed.color = discord.Colour.brand_green()
+            embed.title = "Remove log (" + mode + ")"
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            embed.add_field(name = "Deletion reason", value = caseid, inline = False)
+            embed.add_field(name = mode + " reason", value = reason, inline = False)
         elif category == self.slowmodes:
             embed.color = discord.Colour.teal()
             embed.title = "Slowmode"
@@ -183,7 +190,8 @@ class logmanager:
             embed.color = discord.Colour.dark_red()
             embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-            caseid = await self.sqlm.insertban(target, context.id, reason)
+            if mode:
+                caseid = await self.sqlm.insertban(target, context.id, reason)
             embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             #log = "A ban has been issued for <@" + str(target) + "> by " + str(context.name) + " for " + reason + "."
         elif category == self.kicks:
@@ -245,7 +253,7 @@ class logmanager:
                 elif x.get("key") == "bypasses_verification":
                     await self.sendlog(self.verification, context = mod, mode = x.get("new_value"), target = targetid)
         elif type == ban:
-            await self.sendlog(self.bans, context = mod, target = targetid, reason = isemptyreason(logentry.reason))
+            await self.sendlog(self.bans, context = mod, mode = True, target = targetid, reason = isemptyreason(logentry.reason))
         elif type == kick:
             await self.sendlog(self.kicks, context = mod, target = targetid, reason = isemptyreason(logentry.reason))
         return
