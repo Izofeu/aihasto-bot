@@ -26,6 +26,27 @@ class issuewarnbutton(discord.ui.View):
     def setwebhook(self, hook):
         self.hook = hook
         
+class invalidreportreasonui(discord.ui.Modal):
+    def __init__(self, buttons, isemptyreason, handlereport, title = "Mark Invalid"):
+        super().__init__(title = title, timeout = None)
+        self.buttons = buttons
+        self.isemptyreason = isemptyreason
+        self.handlereport = handlereport
+        self.add_item(discord.ui.InputText(label = "Reason", required = False, max_length = 511))
+        self.timeouted = False
+        
+    async def callback(self, interaction: discord.Interaction):
+        if self.timeouted:
+            await interaction.response.send(":x: Interaction has expired. Try again.", ephemeral = True)
+        await interaction.response.defer()
+        reason = self.isemptyreason(self.children[0].value)
+        await self.handlereport(interaction, buttons = self.buttons, invalid = reason)
+        return
+        
+    async def on_timeout(self):
+        self.timeouted = True
+        
+        
 class reportui(discord.ui.Modal):
     def __init__(self, message, modthread, submitreport, title = "Report message", minlength = 10):
         super().__init__(title = title)
@@ -34,6 +55,7 @@ class reportui(discord.ui.Modal):
         self.submitreport = submitreport
         self.add_item(discord.ui.InputText(label = "Reason", required = True, min_length = minlength, max_length = 256))
     async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
         reason = self.children[0].value
         await self.submitreport(interaction, self.message, reason, self.modthread)
         return
@@ -54,51 +76,24 @@ class deleteai(discord.ui.View):
         return
         
 class resolvereportbutton(discord.ui.View):
-    def __init__(self, sqlm, responsem):
+    def __init__(self, sqlm, responsem, reporthandler):
         super().__init__(timeout = None)
         self.sqlm = sqlm
         self.hook = None
         self.responsem = responsem
+        self.reporth = reporthandler
         
-    @discord.ui.button(label = "Mark Resolved", emoji = "✅", custom_id = "resolvedbutton", style = discord.ButtonStyle.success)
+    @discord.ui.button(label = "Resolve", emoji = "✅", custom_id = "resolvedbutton", style = discord.ButtonStyle.success)
     async def valid_callback(self, button, interaction):
-        self.disable_all_items()
-        author = getauthor(interaction)
-        message = interaction.message
-        try:
-            embed = message.embeds[0]
-            embed.insert_field_at(index = 0, name = "Resolved by", value = "<@" + str(author.id) + ">", inline = False)
-            count = len(embed.fields)
-            embed.insert_field_at(index = count, name = "Resolve date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
-            await message.edit(view = self, embed = embed)
-            caseid = targetid = None
-            for field in embed.fields:
-                if field.name == "Case ID":
-                    caseid = field.value
-                elif field.name == "Reporter":
-                    targetid = field.value[2:-1]
-            try:
-                if caseid and targetid:
-                    guild = interaction.guild
-                    member = await guild.fetch_member(targetid)
-                    await self.responsem.dm(member, "Your report with Case ID " + str(caseid) + " has been marked as resolved.")
-            except:
-                pass
-        except:
-            await message.edit(view = self)
-        await interaction.respond("Marked the report as resolved. Discord forces me to send this useless message else you get an error :slight_frown:.", ephemeral = True)
-        await self.sqlm.subtractreport(targetid)
-        return
+        await self.reporth.handlereport(interaction, buttons = self)
         
     def sethook(self, hook):
         self.hook = hook
         
-    #@discord.ui.button(label = "Mark Invalid", emoji = "❌", custom_id = "unresolvedbutton", style = discord.ButtonStyle.danger)
-    #async def invalid_callback(self, button, interaction):
-    #    author = getauthor(interaction)
-    #    message = interaction.message
-    #    await message.delete()
-    #    return
+    @discord.ui.button(label = "Invalid", emoji = "❌", custom_id = "unresolvedbutton", style = discord.ButtonStyle.danger)
+    async def invalid_callback(self, button, interaction):
+        await self.reporth.invalidreport(interaction, buttons = self)
+        return
         
 class editreasonui(discord.ui.Modal):
     def __init__(self, message, cmdm):

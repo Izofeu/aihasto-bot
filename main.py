@@ -12,6 +12,7 @@ import commandmanager
 import rolemanager
 import c_ui
 import responsemanager
+import reporthandler
 from extrafunctions import getutctimestamp, isemptyreason, sanitizereason, isvalidtime, preparemessagelog
 
 messagecache = []
@@ -51,7 +52,9 @@ pm = permmanager.permmanager(cfg, bot, responsem)
 sqlm = sqlmanager.sqlmanager(cfg)
 logm = logmanager.logmanager(cfg, bot, sqlm, responsem)
 rolem = rolemanager.rolemanager(cfg, pm, bot, sqlm, logm, responsem)
-cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem)
+reporth = reporthandler.reporthandler(cfg, sqlm, responsem)
+cmdm = commandmanager.cmdmanager(cfg, bot, pm, sqlm, rolem, logm, responsem, reporth)
+
 
 
 @bot.event
@@ -198,7 +201,7 @@ async def on_ready():
     print("Logged in to Discord.")
     print("successfully finished startup")
     # Start periodic task for checking expired temproles
-    bot.add_view(c_ui.resolvereportbutton(sqlm, responsem))
+    bot.add_view(c_ui.resolvereportbutton(sqlm, responsem, reporth))
     logm.ready()
     checkmodactions.start()
     

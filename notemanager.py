@@ -15,8 +15,6 @@ class notemanager:
         self.t_assign = 1
         self.t_break = 2
         
-        self.alldata = None
-        
     async def assign(self, context, issuerid, targetid, type, reason = False, root = False):
         issuedate = getdatefordb()
         timestamp = getutctimestamp()
@@ -34,9 +32,9 @@ class notemanager:
         return
     
     async def generatetree(self, context):
-        def getfromalldata(userid):
+        def getfromalldata(userid, alldata):
             array = []
-            for id in self.alldata:
+            for id in alldata:
                 #[0] - account_id
                 #[1] - issuer_id
                 if str(id[0]) == str(userid):
@@ -50,7 +48,7 @@ class notemanager:
         async def recursiontree(userid, message, depth = 1):
             if depth > 6:
                 return message
-            assigneeinfo = getfromalldata(userid)
+            assigneeinfo = getfromalldata(userid, alldata)
             emojis = "🟥🟩🟦🟨🟪⬛"
             for assignees in assigneeinfo:
                 message = await addtomessage(message, (emojis[:depth] + "<@" + str(assignees) + ">\n"))
@@ -58,13 +56,12 @@ class notemanager:
             return message
         rootinfo = await self.sqlm.getroot(self.t_assign)
         message = ""
-        self.alldata = await self.sqlm.getallassigns(self.t_assign)
+        alldata = await self.sqlm.getallassigns(self.t_assign)
         for root in rootinfo:
             message += "\n<@" + str(root[0]) + ">:\n"
             message = await recursiontree(root[0], message)
         if not message:
             message = "No tree to display (no root assigns)."
-        self.alldata = None
         await self.responsem.respond(context, message)
         return
     

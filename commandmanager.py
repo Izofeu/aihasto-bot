@@ -11,7 +11,7 @@ import aimanager
 import asyncio
 
 class cmdmanager:
-    def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager):
+    def __init__(self, cfg, bot, pm, sql, rolemanager, log, responsemanager, reporthandler):
         # Load managers
         self.cfg = cfg
         self.bot = bot
@@ -22,6 +22,7 @@ class cmdmanager:
         self.responsem = responsemanager
         self.notem = notemanager.notemanager(cfg, sql, responsemanager, log)
         self.aim = aimanager.aimanager(cfg)
+        self.reporth = reporthandler
         
         self.timeouts = p_timeouts.timeouts(cfg, bot, pm, log, responsemanager)
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
@@ -65,7 +66,7 @@ class cmdmanager:
         
     async def kick(self, context, target, reason):
         author = getauthor(context)
-        success = await self.responsem.dm(target, ("You have been kicked from AIHASTO by " + author.name + " for " + isemptyreason(reason) + ".\n" +
+        success = await self.responsem.dm(target, (":warning: You have been kicked from AIHASTO by " + author.name + " for " + isemptyreason(reason) + ".\n" +
         "Please edit your profile before rejoining else you will get banned."))
         if not success:
             await self.responsem.respond(context, ":x: User has DMs disabled. Action has been aborted.")
@@ -84,58 +85,58 @@ class cmdmanager:
         
     async def enablereports(self, context, channel, linkedthread):
         if not str(channel.type) == "text" or not str(linkedthread.type) == "public_thread":
-            await self.responsem.respond(context, "The channel must be a text channel and the linked thread must be a public thread.")
+            await self.responsem.respond(context, ":x: The channel must be a text channel and the linked thread must be a public thread.")
             return
         if linkedthread.parent_id != self.cfg.get("modqueuechannelid"):
-            await self.responsem.respond(context, "The selected thread does not belong to the mod queue channel.")
+            await self.responsem.respond(context, ":x: The selected thread does not belong to the mod queue channel.")
             return
         cfgstring = "queuechannel_" + str(channel.id)
         self.cfg.set(cfgstring, linkedthread.id)
-        await self.responsem.respond(context, "Enabled reports in <#" + str(channel.id) + "> -> <#" + str(linkedthread.id) + ">.")
+        await self.responsem.respond(context, ":white_check_mark: Enabled reports in <#" + str(channel.id) + "> -> <#" + str(linkedthread.id) + ">.")
         return
         
     async def customreportminlength(self, context, channel, minlimit):
         if minlimit not in range(0, 100):
-            await self.responsem.respond(context, "The length must be in range 0-100.")
+            await self.responsem.respond(context, ":x: The length must be in range 0-100.")
             return
         cfgstring = "customlimit_" + str(channel.id)
         self.cfg.set(cfgstring, str(minlimit))
-        await self.responsem.respond(context, "Set the limit of " + str(minlimit) + " characters for reports in <#" + str(channel.id) + ">.")
+        await self.responsem.respond(context, ":white_check_mark: Set the limit of " + str(minlimit) + " characters for reports in <#" + str(channel.id) + ">.")
         return
         
     async def disablereports(self, context, channel):
         cfgstring = "queuechannel_" + str(channel.id)
         self.cfg.set(cfgstring, None)
-        await self.responsem.respond(context, "Disabled reports in <#" + str(channel.id) + ">.")
+        await self.responsem.respond(context, ":white_check_mark: Disabled reports in <#" + str(channel.id) + ">.")
         return
         
     async def reportmessage(self, context, message):
         if self.cfg.get("maxallowedreports") == 0:
-            await self.responsem.respond(context, "The reports system is globally disabled.")
+            await self.responsem.respond(context, ":x: The reports system is globally disabled.")
             return
         permissionlevel = await self.pm.getpermissionlevel(message.author)
         if permissionlevel > 0 or message.author.bot:
-            await self.responsem.respond(context, "You cannot report moderator messages.")
+            await self.responsem.respond(context, ":x: You cannot report moderator messages.")
             return
         reportcount = await self.sqlm.getreportcount(context.author.id)
         if reportcount >= self.cfg.get("maxallowedreports"):
-            await self.responsem.respond(context, "You have exceeded the maximum amount of pending reports. Please wait for your reports to get resolved before submitting more reports.")
+            await self.responsem.respond(context, ":x: You have exceeded the maximum amount of pending reports. Please wait for your reports to get resolved before submitting more reports.")
             return
         cfgstring = "queuechannel_" + str(message.channel.id)
         try:
             threadid = self.cfg.get(cfgstring)
         except:
-            await self.responsem.respond(context, "The reporting system is not enabled for this channel.")
+            await self.responsem.respond(context, ":x: The reporting system is not enabled for this channel.")
             return
         try:
             guild = getguild(self.cfg, self.bot)
             queuechannel = await guild.fetch_channel(self.cfg.get("modqueuechannelid"))
         except:
-            await self.responsem.respond(context, "Couldn't fetch the mod queue channel. Contact administrators for help.")
+            await self.responsem.respond(context, ":x: Couldn't fetch the mod queue channel. Contact administrators for help.")
             return
         modthread = queuechannel.get_thread(threadid)
         if modthread is None:
-            await self.responsem.respond(context, "Couldn't fetch the queue thread. Contact administrators for help.")
+            await self.responsem.respond(context, ":x: Couldn't fetch the queue thread. Contact administrators for help.")
             return
         try:
             cfgstring = "customlimit_" + str(message.channel.id)
@@ -151,7 +152,7 @@ class cmdmanager:
         reason = isemptyreason(reason)
         wasreported, modid = await self.sqlm.addreport(author.id, message.id)
         if wasreported:
-            await self.responsem.respond(context, "This message has already been reported!")
+            await self.responsem.respond(context, ":x: This message has already been reported!")
             return
         embed = discord.Embed()
         embed.title = "Message copy (Report)"
@@ -180,7 +181,7 @@ class cmdmanager:
         embed.add_field(name = "Reporter", value = "<@" + str(author.id) + ">", inline = False)
         embed.add_field(name = "Case ID", value = str(modid), inline = False)
         embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
-        resolvedbutton = c_ui.resolvereportbutton(self.sqlm, self.responsem)
+        resolvedbutton = c_ui.resolvereportbutton(self.sqlm, self.responsem, self.reporth)
         threadmessage = await modthread.send(embed = embed, view = resolvedbutton)
         lines = embed.description.split("\n")
         embed.description = ""
@@ -188,10 +189,10 @@ class cmdmanager:
             if line.startswith("Message copy:"):
                 continue
             embed.description += line + "\n"
-        await self.responsem.dm(target = author, message = ("A copy of your submitted report is available below.\nYou will receive a confirmation " +
+        await self.responsem.dm(target = author, message = (":information_source: A copy of your submitted report is available below.\nYou will receive a confirmation " +
             "when your report gets resolved."), embed = embed)
         resolvedbutton.sethook(threadmessage)
-        await threadmessage.add_reaction("🙋‍♂️")
+        #await threadmessage.add_reaction("🙋‍♂️")
         await self.responsem.respond(context, ":white_check_mark: Reported " + messagelink + " by <@" + str(message.author.id) + "> successfully.")
         return
         
@@ -220,9 +221,9 @@ class cmdmanager:
         #[1][0-1] - warncount, warns (issuer_id, expiration_date, reason, issue_date)
         #[2][0-1] - timeoutcount, timeouts (issuer_id, expiration_date, issue_date, reason)
         if history[0][0] == 0 and history[1][0] == 0 and history[2][0] == 0:
-            message = "User <@" + str(member.id) + "> has no punishment history."
+            message = ":information_source: User <@" + str(member.id) + "> has no punishment history."
         else:
-            message = "User <@" + str(member.id) + "> has received following punishments:"
+            message = ":information_source: User <@" + str(member.id) + "> has received following punishments:"
             for flooder in history[0][1]:
                 date, timestamp = sqldatetodateobject(flooder[1])
                 message = await self.responsem.sendpartial(context, message, "\n:ocean: <t:" + str(timestamp) + ":R> - <@" + str(flooder[0]) + "> - " + flooder[2], 1300)
@@ -335,7 +336,7 @@ class cmdmanager:
             if embed.title == "Warn":
                 await self.sqlm.deletecase(caseid, "newwarns")
                 reason = editedreason if editedreason else embed.description
-                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = deletereason)
+                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
                 await message.delete()
                 dmsuccess = True
                 if targetid:

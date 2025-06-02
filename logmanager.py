@@ -157,7 +157,10 @@ class logmanager:
             embed.color = discord.Colour.brand_green()
             embed.title = "Remove log (" + mode + ")"
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-            embed.add_field(name = "Deletion reason", value = caseid, inline = False)
+            embed.add_field(name = mode + " Issuer", value = "<@" + str(altauthor) + ">", inline = False)
+            embed.add_field(name = "Deletion reason", value = duration, inline = False)
+            embed.add_field(name = "Deleted Case ID", value = str(caseid), inline = False)
+            
             embed.add_field(name = mode + " reason", value = reason, inline = False)
         elif category == self.slowmodes:
             embed.color = discord.Colour.teal()

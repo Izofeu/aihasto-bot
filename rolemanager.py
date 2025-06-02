@@ -74,29 +74,29 @@ class rolemanager:
             reason = isemptyreason(reason)
             if role_type == self.flooderrole:
                 if self.pm.hasrole(target, role.id):
-                    await self.responsem.respond(context, "User has " + role.name + " role already!")
+                    await self.responsem.respond(context, ":x: User has " + role.name + " role already!")
                     return
             date, timestamp = isvalidtime(duration, maxduration = maxduration)
             if not date:
-                await self.responsem.respond(context, "Invalid time duration.")
+                await self.responsem.respond(context, ":x: Invalid time duration.")
                 return
             date = date.strftime("%Y-%m-%d %H:%M:%S")
             await target.add_roles(role, reason = modreason)
             rowid = await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
-            dmsuccess = await self.responsem.dm(target, "You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
-            await self.responsem.respond(context, "Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
+            dmsuccess = await self.responsem.dm(target, ":information_source: You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
+            await self.responsem.respond(context, ":white_check_mark: Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role, caseid = rowid)
             return
         else:
             modreason = sanitizereason(author.name, reason = reason, removedrolename = role.name, duration = duration)
             reason = isemptyreason(reason)
             if not self.pm.hasrole(target, role.id):
-                await self.responsem.respond(context, "User doesn't have " + role.name + " role!")
+                await self.responsem.respond(context, ":x: User doesn't have " + role.name + " role!")
                 return
             await target.remove_roles(role, reason = modreason)
             await self.sqlm.removetemprole(target.id, role_type)
-            dmsuccess = await self.responsem.dm(target, "You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + ".")
-            await self.responsem.respond(context, "Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", dmsuccess = dmsuccess)
+            dmsuccess = await self.responsem.dm(target, ":information_source: You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + ".")
+            await self.responsem.respond(context, ":white_check_mark: Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", dmsuccess = dmsuccess)
             await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role)
             return
             
@@ -112,10 +112,10 @@ class rolemanager:
             isnotmodrole = False
         if self.pm.hasrole(target, role.id):
             await target.remove_roles(role, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), removedrolename = role.name))
-            await context.respond("Removed " + role.name + " role from <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
+            await context.respond(":white_check_mark: Removed " + role.name + " role from <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
             await self.logm.sendlog(self.logm.roles, context, mode = self.logm.removerole, target = target, role = role, reason = isemptyreason(reason))
         else:
             await target.add_roles(role, reason = sanitizereason(context.author.name, reason = isemptyreason(reason), addedrolename = role.name))
-            await context.respond("Added " + role.name + " role to <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
+            await context.respond(":white_check_mark: Added " + role.name + " role to <@" + str(target.id) + ">.", ephemeral = isnotmodrole)
             await self.logm.sendlog(self.logm.roles, context, mode = self.logm.addrole, target = target, role = role, reason = isemptyreason(reason))
         return
