@@ -845,6 +845,34 @@ async def setcreatorroles(context, contentcreatormanager: discord.Option(
             await pm.throwerror(context, "Error setting roles.")
         return
         
+@bot.slash_command(description = "Issue an Event ping in an Event announcements channel.")
+@guild_only()
+async def eventping(context):
+    await cmdm.eventping(context)
+    return
+        
+@bot.slash_command(description = "Set an Event announcements channel and ping role.")
+@guild_only()
+async def seteventchannel(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to mark as Event announcements."),
+    pingrole: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to mark as Event pings.")
+    ):
+        # Command permission level
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel=commandpermissionlevel)
+        if not canrun:
+            return
+        cfg.set("eventannouncementschannel", str(channel.id))
+        cfg.set("eventannouncementspingrole", str(pingrole.id))
+        await responsem.respond(context, "Marked <#" + str(channel.id) + "> as Event announcements and <@&" + str(pingrole.id) + "> as Event pings.")
+        return
+        
 @bot.slash_command(description = "Mark which roles are event roles.")
 @guild_only()
 async def seteventroles(context, eventmanager: discord.Option(
