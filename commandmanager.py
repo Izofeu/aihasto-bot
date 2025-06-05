@@ -83,8 +83,9 @@ class cmdmanager:
         
     async def kick(self, context, target, reason):
         author = getauthor(context)
-        success = await self.responsem.dm(target, (":warning: You have been kicked from AIHASTO by " + author.name + " for " + isemptyreason(reason) + ".\n" +
-        "Please edit your profile before rejoining else you will get banned."))
+        success = await self.responsem.dm(target, (":warning: You have been kicked from " + self.cfg.get("servername") + " by " + author.name + " for " + isemptyreason(reason) + ".\n" +
+        "Please edit your profile before rejoining else you will get banned.\n" +
+        self.cfg.get("appealadmins") + "\n" + self.cfg.get("ruleslink")))
         if not success:
             await self.responsem.respond(context, ":x: User has DMs disabled. Action has been aborted.")
         else:

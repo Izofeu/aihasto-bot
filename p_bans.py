@@ -27,9 +27,9 @@ class bans:
             pass
         caseid = await self.sqlm.insertban(target.id, author.id, reason = isemptyreason(reason))
         dmsuccess = await self.responsem.dm(target, (":x: You have been banned from " + self.cfg.get("servername") + " by " + str(author.name) + " for " + isemptyreason(reason) + ".\n" +
-        "To appeal the ban, add either the ban issuer or one of the following admins to your friends list: `goldautumnleaf`, `illidaaan`, `doxx.me` .\n" +
+        self.cfg.get("appealadmins") + "\n" +
         "When appealing the ban, provide the following Case ID: " + str(caseid) + ".\n" +
-        "Server rules can be accessed at this link: " + self.cfg.get("ruleslink") + ""))
+        self.cfg.get("ruleslink")))
         try:
             await author.guild.ban(target, delete_message_seconds = secondscount, reason = banreason)
         except Exception as e:
