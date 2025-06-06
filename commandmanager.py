@@ -154,8 +154,15 @@ class cmdmanager:
             return
         modthread = queuechannel.get_thread(threadid)
         if modthread is None:
-            await self.responsem.respond(context, ":x: Couldn't fetch the queue thread. Contact administrators for help.")
-            return
+            foundthread = False
+            async for thread in queuechannel.archived_threads(limit = 100):
+                if thread.id == threadid:
+                    modthread = thread
+                    foundthread = True
+                    break
+            if not foundthread:
+                await self.responsem.respond(context, ":x: Couldn't fetch the queue thread. Contact administrators for help.")
+                return
         try:
             cfgstring = "customlimit_" + str(message.channel.id)
             minlength = self.cfg.get(cfgstring)
