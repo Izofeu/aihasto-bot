@@ -18,6 +18,9 @@ class sqlmanager:
         self.mrmustardrole = 3
         self.argrole = 7
         
+        self.kickstable = "badnames"
+        self.warnstable = "newwarns"
+        
         self.kicksuccess = 1
         self.kickfailuredms = 2
         # Unused variable

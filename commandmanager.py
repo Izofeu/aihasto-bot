@@ -335,7 +335,7 @@ class cmdmanager:
         except:
             await self.responsem.respond(context, ":x: This message doesn't have embeds.")
             return
-        editables = ["Warn"]
+        editables = ["Warn", "Kick"]
         deletereason = isemptyreason(deletereason)
         if embed.title in editables:
             caseid = issuerid = editedreason = targetid = None
@@ -358,12 +358,12 @@ class cmdmanager:
                 if permlevel < 3:
                     await self.responsem.respond(context, ":x: You are not the author of this punishment. Ask Mita's Arms for assistance.")
                     return
+            dmsuccess = True
             if embed.title == "Warn":
-                await self.sqlm.deletecase(caseid, "newwarns")
+                await self.sqlm.deletecase(caseid, self.sqlm.warnstable)
                 reason = editedreason if editedreason else embed.description
                 await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
                 await message.delete()
-                dmsuccess = True
                 if targetid:
                     targetid = targetid[2:-1]
                     guild = getguild(self.cfg, self.bot)
@@ -373,8 +373,13 @@ class cmdmanager:
                         "for " + deletereason + "."))
                     except:
                         pass
-                await self.responsem.respond(context, ":white_check_mark: Mod action deleted successfully.", dmsuccess = dmsuccess)
                 return
+            elif embed.title == "Kick":
+                await self.sqlm.deletecase(caseid, self.sqlm.kickstable)
+                reason = editedreason if editedreason else embed.description
+                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
+                await message.delete()
+            await self.responsem.respond(context, ":white_check_mark: Mod action deleted successfully.", dmsuccess = dmsuccess)
         else:
             await self.responsem.respond(context, ":x: " + embed.title + " actions cannot be deleted.\nDeletable actions: " + str(editables) + ".")
             return
