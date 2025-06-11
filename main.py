@@ -107,7 +107,7 @@ async def on_message_edit(before, after):
         permissionlevel = await pm.getpermissionlevel(after.author, reliable = False)
         if permissionlevel == 4:
             return
-        if str(before.channel.id) in cfg.get("nologs").split(","):
+        if str(before.channel.id) in cfg.get("nologs"):
             return
         embed = discord.Embed()
         embed.title="Message edited"
@@ -141,7 +141,7 @@ async def on_message_delete(message):
     permissionlevel = await pm.getpermissionlevel(message.author, reliable = False)
     if permissionlevel == 4:
         return
-    if str(message.channel.id) in cfg.get("nologs").split(","):
+    if str(message.channel.id) in cfg.get("nologs"):
         return
     embed = discord.Embed()
     embed.title = "Message deleted"
@@ -260,6 +260,53 @@ async def deletemodaction(context, message):
         return
     await cmdm.opendeletemodcasemenu(context, message)
     return
+    
+@bot.slash_command(description = "Toggle the lock of the Event stage channel.")
+@guild_only()
+async def toggleeventlock(context):
+    await cmdm.toggleeventlock(context)
+    return
+    
+@bot.slash_command(description = "Get a list of channels exempt from message logging.")
+@guild_only()
+async def getnolog(context):
+    commandpermissionlevel = 1
+    # Permission check
+    canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+    if not canrun:
+        return
+    await cmdm.getnolog(context)
+    return
+    
+@bot.slash_command(description = "Add a channel to a list of channels exempt from message logging.")
+@guild_only()
+async def addnolog(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to add to the exemption list.")
+    ):
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.addnolog(context, channel)
+        return
+        
+@bot.slash_command(description = "Remove a channel from a list of channels exempt from message logging.")
+@guild_only()
+async def removenolog(context, channel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to remove from the exemption list.")
+    ):
+        commandpermissionlevel = 4
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.removenolog(context, channel)
+        return
     
 @bot.slash_command(description = "Ask Gemini AI.")
 @guild_only()
@@ -857,6 +904,10 @@ async def seteventchannel(context, channel: discord.Option(
     discord.SlashCommandOptionType.channel,
     required = True,
     description = "Channel to mark as Event announcements."),
+    stagechannel: discord.Option(
+    discord.SlashCommandOptionType.channel,
+    required = True,
+    description = "Channel to mark as Event stage."),
     pingrole: discord.Option(
     discord.SlashCommandOptionType.role,
     required = True,
@@ -869,8 +920,9 @@ async def seteventchannel(context, channel: discord.Option(
         if not canrun:
             return
         cfg.set("eventannouncementschannel", str(channel.id))
+        cfg.set("eventstagechannel", str(stagechannel.id))
         cfg.set("eventannouncementspingrole", str(pingrole.id))
-        await responsem.respond(context, "Marked <#" + str(channel.id) + "> as Event announcements and <@&" + str(pingrole.id) + "> as Event pings.")
+        await responsem.respond(context, "Marked <#" + str(channel.id) + "> as Event announcements, <@&" + str(pingrole.id) + "> as Event pings and <#" + str(stagechannel.id) + "> as Event stage.")
         return
         
 @bot.slash_command(description = "Mark which roles are event roles.")
@@ -882,7 +934,11 @@ async def seteventroles(context, eventmanager: discord.Option(
     gladiator: discord.Option(
     discord.SlashCommandOptionType.role,
     required = True,
-    description = "Role to be marked as a Gladiator role.")
+    description = "Role to be marked as a Gladiator role."),
+    leadeventmanager: discord.Option(
+    discord.SlashCommandOptionType.role,
+    required = True,
+    description = "Role to be marked as the Lead Event manager role.")
     ):
         # Command permission level
         commandpermissionlevel = 4
@@ -894,7 +950,8 @@ async def seteventroles(context, eventmanager: discord.Option(
             # Write new ids to config
             cfg.set("eventmanagerid", eventmanager.id)
             cfg.set("gladiatorid", gladiator.id)
-            await context.respond("Marked " + eventmanager.name + " as Event manager and " + gladiator.name + " as Gladiator.")
+            cfg.set("leadeventmanagerid", leadeventmanager.id)
+            await context.respond("Marked " + eventmanager.name + " as Event manager, " + gladiator.name + " as Gladiator and " + leadeventmanager.name + " as Lead Event manager.")
         except:
             await pm.throwerror(context, "Error setting roles.")
         return
@@ -1025,7 +1082,7 @@ async def setlogchannel(context, channel: discord.Option(
 @bot.slash_command(description = "Enable permission debug mode. Developer only.")
 @guild_only()
 async def permdebug(context):
-    if str(context.author.id) not in cfg.get("masters").split(","):
+    if context.author.id not in cfg.get("masters"):
         await context.respond("This command can only be toggled by the bot developer.", ephemeral = True)
         return
     if cfg.get("permdebug") == 1:

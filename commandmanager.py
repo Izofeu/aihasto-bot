@@ -29,17 +29,74 @@ class cmdmanager:
         self.bans = p_bans.bans(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
         
+    async def toggleeventlock(self, context):
+        author = getauthor(context)
+        if not self.pm.hasrole(author, self.cfg.get("eventmanagerid")) and await self.pm.getpermissionlevel(author) < 3:
+            await self.responsem.respond(context, ":x: You are not an Event manager / Mita's Arms.")
+            return
+        eventchannel = self.cfg.get("eventstagechannel")
+        guild = getguild(self.cfg, self.bot)
+        try:
+            eventchannel = await guild.fetch_channel(eventchannel)
+        except:
+            await self.responsem.respond(context, ":x: Couldn't fetch the Event stage channel. Is the following channel correct? <#" + str(self.cfg.get("eventstagechannel")) + ">")
+            return
+        role = guild.default_role.id
+        role = guild.get_role(role)
+        permslist = eventchannel.permissions_for(role)
+        connect = False if permslist.connect else True
+        try:
+            await eventchannel.set_permissions(role, connect = connect)
+            await self.responsem.respond(context, ":white_check_mark: Set the Connect permission to " + str(connect) + " for <#" + str(eventchannel.id) + ">.")
+        except Exception as e:
+            print(e)
+            await self.responsem.respond(context, ":x: Couldn't set the channel permissions. Do I have permission?")
+        return
+        
+    async def addnolog(self, context, channel):
+        channelslist = self.cfg.get("nologs")
+        try:
+            channelslist.remove(channel.id)
+            await self.responsem.respond(context, ":x: Channel <#" + str(channel.id) + "> is already exempt from message logging.")
+            return
+        except:
+            pass
+        channelslist.append(channel.id)
+        self.cfg.setarray("nologs", channelslist)
+        await self.responsem.respond(context, ":white_check_mark: Added <#" + str(channel.id) + "> to channels exempt from message logging.")
+        return
+        
+    async def removenolog(self, context, channel):
+        channelslist = self.cfg.get("nologs")
+        try:
+            channelslist.remove(channel.id)
+        except:
+            await self.responsem.respond(context, ":x: Channel <#" + str(channel.id) + "> is not exempt from message logging.")
+            return
+        self.cfg.setarray("nologs", channelslist)
+        await self.responsem.respond(context, ":white_check_mark: Removed <#" + str(channel.id) + "> from channels exempt from message logging.")
+        return
+        
+    async def getnolog(self, context):
+        message = ":information_source: Channels exempt from message logging:\n"
+        for channel in self.cfg.get("nologs"):
+            message += "<#" + str(channel) + ">\n"
+        await self.responsem.respond(context, message)
+        return
+        
     async def eventping(self, context):
+        await context.defer(ephemeral = True)
         author = getauthor(context)
         permlevel = await self.pm.getpermissionlevel(author)
-        iseventmanager = self.pm.hasrole(author, self.cfg.get("eventmanagerid"))
+        iseventmanager = self.pm.hasrole(author, self.cfg.get("leadeventmanagerid"))
         if permlevel < 4 and not iseventmanager:
-            await self.responsem.respond(context, ":x: You are not an Event manager / Mita's Shoulders.")
+            await self.responsem.respond(context, ":x: You are not a Lead Event manager / Mita's Shoulders.")
             return
         if context.channel.id != self.cfg.get("eventannouncementschannel"):
             await self.responsem.respond(context, ":x: This command can only be run in <#" + str(self.cfg.get("eventannouncementschannel")) + ">.")
             return
-        await self.responsem.respond(context, "<@&" + str(self.cfg.get("eventannouncementspingrole")) + ">", ephemeral = False)
+        await context.channel.send("<@&" + str(self.cfg.get("eventannouncementspingrole")) + ">")
+        await self.responsem.respond(context, ":white_check_mark: Pinged <@&" + str(self.cfg.get("eventannouncementspingrole")) + "> successfully.")
         return
         
     async def banpopup(self, context, target):

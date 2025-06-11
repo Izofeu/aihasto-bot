@@ -60,7 +60,7 @@ class permmanager:
                 member = await guild.fetch_member(member.id)
             except:
                 return 0
-        if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters").split(",")) and not self.cfg.get("permdebug"):
+        if (member.guild_permissions.manage_guild or str(member.id) in self.cfg.get("masters")) and not self.cfg.get("permdebug"):
             return 4
         if self.hasrole(member, self.cfg.get("armrole")) or (member.guild_permissions.manage_roles and not self.cfg.get("permdebug")):
             return 3

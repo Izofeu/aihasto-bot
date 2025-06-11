@@ -34,9 +34,30 @@ class parseconfig:
     def get(self, key):
         try:
             # Obtain a value from a key.
+            value = self.config[key]
+            if isinstance(value, int):
+                return self.config[key]
+            try:
+                firstchar = value[0]
+                lastchar = value[-1]
+                if firstchar == "[" and lastchar == "]":
+                    rawarray = self.config[key][1:-1].split(",")
+                    if len(rawarray) > 0:
+                        newarray = []
+                        try:
+                            int(rawarray[0])
+                            for element in rawarray:
+                                newarray.append(int(element))
+                            return newarray
+                        except:
+                            return rawarray
+                    else:
+                        return []
+            except Exception as e:
+                print(e)
             return self.config[key]
         except:
-            raise Exception("The key " + str(key) + " does not exist.")
+            raise Exception("The key " + str(key) + " does not exist / error obtaining key.")
             return False
     def loadtoken(self, tokenfile):
         # Load bot token
@@ -52,6 +73,18 @@ class parseconfig:
             except:
                 print("Error reading the token file!")
                 return False
+    def setarray(self, keyname, array):
+        value = "["
+        firstrun = True
+        for element in array:
+            if firstrun:
+                firstrun = False
+            else:
+                value += ","
+            value += str(element)
+        value += "]"
+        self.set(keyname, value)
+        return
     # Set a config key
     def set(self, keyname, valuename):
         try:
