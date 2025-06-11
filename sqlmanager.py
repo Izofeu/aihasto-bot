@@ -20,6 +20,7 @@ class sqlmanager:
         
         self.kickstable = "badnames"
         self.warnstable = "newwarns"
+        self.breakstable = "breaks"
         
         self.kicksuccess = 1
         self.kickfailuredms = 2
@@ -164,6 +165,19 @@ class sqlmanager:
                 "`issuer_id` varchar(40) NOT NULL," +
                 "`issue_date` DATETIME NULL," +
                 "`reason` varchar(512) NULL," +
+                "PRIMARY KEY (id)" +
+                ");"
+                )
+                await self.cur.execute(tablequery)
+                tablequery = (
+                "CREATE TABLE IF NOT EXISTS `" + self.breakstable + "`" +
+                "(" +
+                "`id` INT NOT NULL AUTO_INCREMENT," +
+                "`account_id` varchar(40) NOT NULL," +
+                "`issuer_id` varchar(40) NOT NULL," +
+                "`expiration_date` DATETIME NOT NULL," +
+                "`issue_date` DATETIME NOT NULL" +
+                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided.'," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
