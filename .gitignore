@@ -1,3 +1,4 @@
 __pycache__/
 *.pwd
 *.lnk
+config_remote.cfg

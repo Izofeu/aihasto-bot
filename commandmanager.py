@@ -74,15 +74,17 @@ class cmdmanager:
         guild = getguild(self.cfg, self.bot)
         try:
             eventchannel = await guild.fetch_channel(eventchannel)
-        except:
+        except Exception as e:
+            print(e)
             await self.responsem.respond(context, ":x: Couldn't fetch the Event stage channel. Is the following channel correct? <#" + str(self.cfg.get("eventstagechannel")) + ">")
             return
         role = guild.default_role.id
         role = guild.get_role(role)
         permslist = eventchannel.permissions_for(role)
         connect = False if permslist.connect else True
+        reason = sanitizereason(author = author.name)
         try:
-            await eventchannel.set_permissions(role, connect = connect)
+            await eventchannel.set_permissions(role, connect = connect, reason = reason)
             await self.responsem.respond(context, ":white_check_mark: Set the Connect permission to " + str(connect) + " for <#" + str(eventchannel.id) + ">.")
         except Exception as e:
             print(e)
