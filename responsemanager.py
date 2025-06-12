@@ -38,7 +38,7 @@ class responsemanager:
         except:
             return False
             
-    async def sendpartial(self, context, message, addition, limit):
+    async def sendpartial(self, context, message, addition, limit = 1300):
         message = str(message)
         addition = str(addition)
         if (len(message) + len(addition)) > limit:

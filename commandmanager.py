@@ -1,4 +1,4 @@
-from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp, sanitizereason, getdatefordb
+from extrafunctions import isemptyreason, amiauthor, getauthor, sqldatetodateobject, datetotimestamp, gettimedifferencestr, getguild, preparemessagelog, getutctimestamp, sanitizereason, getdatefordb, isvalidtime, datetosqlformat
 import p_timeouts
 import p_warns
 import p_bans
@@ -28,6 +28,42 @@ class cmdmanager:
         self.warns = p_warns.warns(cfg, bot, pm, log, sql, responsemanager)
         self.bans = p_bans.bans(cfg, bot, pm, log, sql, responsemanager)
         self.slowmodes = g_slowmodes.slowmodes(cfg, bot, pm, log)
+        
+    async def showbreaks(self, context, mod):
+        found = False
+        if mod:
+            results = await self.sqlm.showbreaksuser(mod.id)
+            message = ":information_source: History of breaks for <@" + str(mod.id) + ">:"
+        else:
+            results = await self.sqlm.showbreaksglobal(getdatefordb())
+            message = ":information_source: Moderators currently on break:"
+        for result in results:
+            found = True
+            _, expiration_date = sqldatetodateobject(result[3])
+            _, issue_date = sqldatetodateobject(result[4])
+            message = await self.responsem.sendpartial(context, message, "\n<@" + str(result[1]) + "> - <t:" + str(issue_date) + ":R> - ends <t:" + str(expiration_date) + ":R> at <t:" + str(expiration_date) + ":F> - " + str(result[5]))
+        if message:
+            if not found:
+                message += "\nNo moderators are currently on break."
+            await self.responsem.respond(context, message)
+        return
+        
+    async def sendbreak(self, context, mod, duration, reason):
+        await context.defer(ephemeral = True)
+        author = getauthor(context)
+        reason = isemptyreason(reason)
+        if await self.sqlm.isonbreak(mod.id, getdatefordb()):
+            await self.responsem.respond(context, ":x: Mod <@" + str(mod.id) + "> is already on a break!")
+            return
+        date, untiltimestamp = isvalidtime(duration, 60)
+        if not date:
+            await self.responsem.respond(context, ":x: Invalid break duration.")
+            return
+        date = datetosqlformat(date)
+        caseid = await self.sqlm.sendbreak(mod.id, author.id, date, getdatefordb(), reason)
+        await self.logm.sendlog(self.logm.breaks, author, target = mod.id, duration = untiltimestamp, reason = reason, caseid = caseid)
+        await self.responsem.respond(context, ":white_check_mark: Sent <@" + str(mod.id) + "> to a break until <t:" + str(untiltimestamp) + ":F>.")
+        return
         
     async def toggleeventlock(self, context):
         author = getauthor(context)
@@ -392,7 +428,7 @@ class cmdmanager:
         except:
             await self.responsem.respond(context, ":x: This message doesn't have embeds.")
             return
-        editables = ["Warn", "Kick"]
+        editables = ["Warn", "Kick", "On break"]
         deletereason = isemptyreason(deletereason)
         if embed.title in editables:
             caseid = issuerid = editedreason = targetid = None
@@ -416,11 +452,9 @@ class cmdmanager:
                     await self.responsem.respond(context, ":x: You are not the author of this punishment. Ask Mita's Arms for assistance.")
                     return
             dmsuccess = True
+            reason = editedreason if editedreason else embed.description
             if embed.title == "Warn":
                 await self.sqlm.deletecase(caseid, self.sqlm.warnstable)
-                reason = editedreason if editedreason else embed.description
-                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
-                await message.delete()
                 if targetid:
                     targetid = targetid[2:-1]
                     guild = getguild(self.cfg, self.bot)
@@ -430,12 +464,13 @@ class cmdmanager:
                         "for " + deletereason + "."))
                     except:
                         pass
-                return
             elif embed.title == "Kick":
                 await self.sqlm.deletecase(caseid, self.sqlm.kickstable)
-                reason = editedreason if editedreason else embed.description
-                await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
-                await message.delete()
+            elif embed.title == "On break":
+                await self.sqlm.deletecase(caseid, self.sqlm.breakstable)
+                
+            await self.logm.sendlog(self.logm.deletemodaction, author, mode = embed.title, reason = reason, caseid = caseid, altauthor = issuerid, duration = deletereason)
+            await message.delete()
             await self.responsem.respond(context, ":white_check_mark: Mod action deleted successfully.", dmsuccess = dmsuccess)
         else:
             await self.responsem.respond(context, ":x: " + embed.title + " actions cannot be deleted.\nDeletable actions: " + str(editables) + ".")

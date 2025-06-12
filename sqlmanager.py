@@ -176,8 +176,8 @@ class sqlmanager:
                 "`account_id` varchar(40) NOT NULL," +
                 "`issuer_id` varchar(40) NOT NULL," +
                 "`expiration_date` DATETIME NOT NULL," +
-                "`issue_date` DATETIME NOT NULL" +
-                "`reason` VARCHAR(512) NOT NULL DEFAULT 'No reason provided.'," +
+                "`issue_date` DATETIME NOT NULL," +
+                "`reason` VARCHAR(512) NOT NULL," +
                 "PRIMARY KEY (id)" +
                 ");"
                 )
@@ -203,6 +203,27 @@ class sqlmanager:
             if not maintainconnection:
                 self.lock.release()
         return result, rowid
+        
+    async def isonbreak(self, id, date):
+        query = "SELECT COUNT(id) FROM `" + self.breakstable + "` WHERE account_id = " + str(id) + " AND expiration_date > '" + str(date) + "'"
+        result, _ = await self.query(query)
+        return result[0][0]
+        
+    async def showbreaksglobal(self, date):
+        query = "SELECT * FROM `" + self.breakstable + "` WHERE expiration_date > '" + str(date) + "'"
+        result, _ = await self.query(query)
+        return result
+        
+    async def showbreaksuser(self, id):
+        query = "SELECT * FROM `" + self.breakstable + "` WHERE account_id = " + str(id)
+        result, _ = await self.query(query)
+        return result
+        
+    async def sendbreak(self, id, issuer_id, expiration_date, issue_date, reason):
+        query = ("INSERT INTO `" + self.breakstable + "` (account_id, issuer_id, expiration_date, issue_date, reason) " +
+        "VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + str(expiration_date) + "', '" + str(issue_date) + "', %s)")
+        _, caseid = await self.query(query, [reason])
+        return caseid
         
     async def insertban(self, id, issuer_id, reason):
         query = "INSERT INTO `bans` (account_id, issuer_id, issue_date, reason) VALUES (" + str(id) + ", " + str(issuer_id) + ", '" + getdatefordb() + "', %s)"

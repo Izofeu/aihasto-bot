@@ -31,6 +31,7 @@ class logmanager:
         self.reportslimit = 13
         self.verification = 14
         self.deletemodaction = 15
+        self.breaks = 16
         
         self.addrole = 1
         self.removerole = 2
@@ -108,6 +109,14 @@ class logmanager:
                 
                 caseid = await self.sqlm.addtimeout(target, context.id, date, reason)
                 embed.add_field(name = "Case ID", value = str(caseid), inline = False)
+        elif category == self.breaks:
+            embed.description = reason
+            embed.color = discord.Colour.dark_teal()
+            embed.title = "On break"
+            embed.add_field(name = "Target", value = "<@" + str(target) + ">", inline = False)
+            embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
+            embed.add_field(name = "Until", value = "<t:" + str(duration) + ":F>", inline = False)
+            embed.add_field(name = "Case ID", value = str(caseid), inline = False)
         elif category == self.verification:
             embed.color = discord.Colour.dark_green()
             embed.title = "Unverify member"

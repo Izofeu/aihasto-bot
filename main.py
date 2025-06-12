@@ -261,6 +261,46 @@ async def deletemodaction(context, message):
     await cmdm.opendeletemodcasemenu(context, message)
     return
     
+@bot.slash_command(description = "Show who's on break, or a history of breaks for a user.")
+@guild_only()
+async def showbreaks(context, mod: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = False,
+    description = "Moderator to view the history of breaks of."
+    )
+    ):
+        commandpermissionlevel = 1
+        # Permission check
+        canrun = await pm.canrun(context, context.author, commandpermissionlevel = commandpermissionlevel)
+        if not canrun:
+            return
+        await cmdm.showbreaks(context, mod)
+        return
+    
+@bot.slash_command(description = "Send a moderator to a break.")
+@guild_only()
+async def sendbreak(context, mod: discord.Option(
+    discord.SlashCommandOptionType.user,
+    required = True,
+    description = "Moderator to send to a break."),
+    duration: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = True,
+    description = "The duration of a break in format: 5m - 5 minutes, 3h - 3 hours, 10d - 10 days."
+    ),
+    reason: discord.Option(
+    discord.SlashCommandOptionType.string,
+    required = False,
+    description = "Reason for the break.")
+    ):
+        commandpermissionlevel = 2
+        # Permission check
+        canrun = await pm.canrun(context, context.author, target = mod, commandpermissionlevel = commandpermissionlevel, onlygreater = True)
+        if not canrun:
+            return
+        await cmdm.sendbreak(context, mod, duration, reason)
+        return
+    
 @bot.slash_command(description = "Toggle the lock of the Event stage channel.")
 @guild_only()
 async def toggleeventlock(context):

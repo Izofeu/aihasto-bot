@@ -30,7 +30,6 @@ def isvalidtime(time, maxduration = 14):
     # If anything went wrong, report an incorrect date
     except:
         return False, False
-    return False, False
     
 def isemptyreason(reason):
     if not reason:
@@ -105,6 +104,9 @@ def gettimedifferencestr(date2, date1):
     
 def getdatefordb():
     return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
+    
+def datetosqlformat(date):
+    return date.strftime("%Y-%m-%d %H:%M:%S")
     
 def preparemessagelog(cfg, message):
     attachmentlinks = stickers = preparedtitle = ""

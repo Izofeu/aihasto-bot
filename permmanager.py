@@ -9,7 +9,7 @@ class permmanager:
         self.bot = bot
         self.responsem = responsem
         
-    async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False, useroverride = False, shoulderoverride = False):
+    async def canrun(self, context, member, target=False, commandpermissionlevel=-1, interaction = False, useroverride = False, shoulderoverride = False, onlygreater = False):
         # This method checks if a member has permission to run a command.
         # The permissions involve two checks:
         # If a command is a general command that doesn't affect a specific user then
@@ -41,6 +41,12 @@ class permmanager:
                 if targetuser_permissionlevel >= inituser_permissionlevel:
                     if shoulderoverride:
                         return True
+                    elif onlygreater:
+                        if targetuser_permissionlevel > inituser_permissionlevel:
+                            await self.responsem.respond(context, ":x: The target user needs to be equal to or lower than your highest role.")
+                            return False
+                        else:
+                            return True
                     await self.responsem.respond(context, ":x: The target user needs to be lower than your highest role.")
                     return False
         except:
