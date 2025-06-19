@@ -72,8 +72,11 @@ class logmanager:
         await message.edit(embed = embed)
         return True
         
-    async def uploadembed(self, embed, ismessagelog = False):
+    async def uploadembed(self, embed, ismessagelog = False, dmsuccess = None):
         try:
+            if dmsuccess is not None:
+                value = ":white_check_mark:" if dmsuccess else ":x:"
+                embed.add_field(name = "DM successful?", value = value, inline = False)
             embed.add_field(name = "Date", value = "<t:" + getutctimestamp() + ":F>", inline = False)
             if ismessagelog:
                 message = await self.messagelogchannel.send(embed = embed)
@@ -84,7 +87,7 @@ class logmanager:
             print(e)
             print(embed)
         return message
-    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False, caseid = None):
+    async def sendlog(self, category, context, mode = False, target = False, duration = False, reason = False, role = False, channelid = False, altauthor = False, caseid = None, dmsuccess = None):
         embed = discord.Embed()
         if category == self.timeouts:
             embed.title = "Timeout add"
@@ -214,7 +217,7 @@ class logmanager:
             if caseid:
                 embed.add_field(name = "Case ID", value = str(caseid), inline = False)
             embed.add_field(name = "Issuer", value = "<@" + str(context.id) + ">", inline = False)
-        await self.uploadembed(embed)
+        await self.uploadembed(embed, dmsuccess = dmsuccess)
         return
     def ready(self):
         self.guild = self.bot.get_guild(self.cfg.get("guild"))
@@ -254,12 +257,13 @@ class logmanager:
                 if x.get("key") == "communication_disabled_until":
                     if x.get("new_value"):
                         date, timestamp = discorddatetodateobject(x.get("new_value"))
+                        dmsuccess = False
                         try:
                             member = await self.guild.fetch_member(targetid)
-                            await self.responsem.dm(member, "You have been timed out by <@" + str(mod.id) + "> for " + isemptyreason(logentry.reason) + " until <t:" + str(timestamp) + ":F>.")
+                            dmsuccess = await self.responsem.dm(member, ":information_source: You have been timed out by <@" + str(mod.id) + "> for " + isemptyreason(logentry.reason) + " until <t:" + str(timestamp) + ":F>.")
                         except:
                             pass
-                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason))
+                        await self.sendlog(self.timeouts, context = mod, target = targetid, duration = [date, timestamp], reason = isemptyreason(logentry.reason), dmsuccess = dmsuccess)
                     else:
                         await self.sendlog(self.timeouts, context = mod, mode = self.removetimeout, target = targetid, reason = isemptyreason(logentry.reason))
                 elif x.get("key") == "bypasses_verification":

@@ -85,7 +85,7 @@ class rolemanager:
             rowid = await self.sqlm.addtemprole(target.id, author.id, date, role_type, reason)
             dmsuccess = await self.responsem.dm(target, ":information_source: You have been issued a " + role.name + " role by <@" + str(author.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".")
             await self.responsem.respond(context, ":white_check_mark: Added " + role.name + " to <@" + str(target.id) + "> until <t:" + str(timestamp) + ":F> for " + reason + ".", dmsuccess = dmsuccess)
-            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role, caseid = rowid)
+            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.addrole, target = target, duration = timestamp, reason = reason, role = role, caseid = rowid, dmsuccess = dmsuccess)
             return
         else:
             modreason = sanitizereason(author.name, reason = reason, removedrolename = role.name, duration = duration)
@@ -97,7 +97,7 @@ class rolemanager:
             await self.sqlm.removetemprole(target.id, role_type)
             dmsuccess = await self.responsem.dm(target, ":information_source: You have been prematurely removed from a " + role.name + " role by <@" + str(author.id) + "> for " + reason + ".")
             await self.responsem.respond(context, ":white_check_mark: Removed " + role.name + " from <@" + str(target.id) + "> for " + reason + ".", dmsuccess = dmsuccess)
-            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role)
+            await self.logm.sendlog(self.logm.temproles, author, mode = self.logm.removerole, target = target, reason = reason, role = role, dmsuccess = dmsuccess)
             return
             
     async def role(self, context, target, role, reason):

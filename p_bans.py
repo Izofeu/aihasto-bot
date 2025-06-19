@@ -36,7 +36,7 @@ class bans:
             print(e)
             await self.responsem.respond(context, ":x: Couldn't ban the user! I don't have sufficient permissions!")
             return
-        await self.logm.sendlog(self.logm.bans, context = author, mode = False, target = target.id, reason = isemptyreason(reason), caseid = caseid)
+        await self.logm.sendlog(self.logm.bans, context = author, mode = False, target = target.id, reason = isemptyreason(reason), caseid = caseid, dmsuccess = dmsuccess)
         await self.responsem.respond(context, ":white_check_mark: Successfully banned <@" + str(target.id) + ">!", dmsuccess = dmsuccess)
         return
         

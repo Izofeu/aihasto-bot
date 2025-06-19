@@ -22,7 +22,7 @@ class timeouts:
                 return
             dmsuccess = await self.responsem.dm(target, ":warning: Your timeout has been removed by <@" + str(author.id) + "> for " + isemptyreason(reason) + ".")
             await self.responsem.respond(context, ":white_check_mark: Removed timeout from <@" + str(target.id) + ">.", dmsuccess = dmsuccess)
-            await self.logm.sendlog(self.logm.timeouts, author, mode = self.logm.removetimeout, target = target.id, reason = isemptyreason(reason))
+            await self.logm.sendlog(self.logm.timeouts, author, mode = self.logm.removetimeout, target = target.id, reason = isemptyreason(reason), dmsuccess = dmsuccess)
         else:
             time, untiltimestamp = isvalidtime(duration)
             if not time:
@@ -40,5 +40,5 @@ class timeouts:
                 return
             dmsuccess = await self.responsem.dm(target, ":warning: You have been timed out by <@" + str(author.id) + "> for " + isemptyreason(reason) + " until <t:" + str(untiltimestamp) + ":F>.")
             await self.responsem.respond(context, ":white_check_mark: Issued a timeout to <@" + str(target.id) + "> for " + duration + ".", dmsuccess = dmsuccess)
-            await self.logm.sendlog(self.logm.timeouts, author, target = target.id, duration = [time, untiltimestamp], reason = isemptyreason(reason))
+            await self.logm.sendlog(self.logm.timeouts, author, target = target.id, duration = [time, untiltimestamp], reason = isemptyreason(reason), dmsuccess = dmsuccess)
             return

@@ -178,10 +178,10 @@ class cmdmanager:
         
     async def kick(self, context, target, reason):
         author = getauthor(context)
-        success = await self.responsem.dm(target, (":warning: You have been kicked from " + self.cfg.get("servername") + " by " + author.name + " for " + isemptyreason(reason) + ".\n" +
+        dmsuccess = await self.responsem.dm(target, (":warning: You have been kicked from " + self.cfg.get("servername") + " by " + author.name + " for " + isemptyreason(reason) + ".\n" +
         "Please edit your profile before rejoining else you will get banned.\n" +
         self.cfg.get("appealadmins") + "\n" + self.cfg.get("ruleslink")))
-        if not success:
+        if not dmsuccess:
             await self.responsem.respond(context, ":x: User has DMs disabled. Action has been aborted.")
         else:
             try:
@@ -191,9 +191,9 @@ class cmdmanager:
                 await self.responsem.respond(context, ":x: Error kicking user.")
                 return
             await self.responsem.respond(context, ":white_check_mark: User has received a DM and has been kicked.")
-        caseid = await self.sqlm.insertkick(target.id, author.id, getdatefordb(), isemptyreason(reason), success)
-        if success:
-            await self.logm.sendlog(self.logm.kicks, author, target = target.id, reason = isemptyreason(reason), caseid = caseid)
+        caseid = await self.sqlm.insertkick(target.id, author.id, getdatefordb(), isemptyreason(reason), dmsuccess)
+        if dmsuccess:
+            await self.logm.sendlog(self.logm.kicks, author, target = target.id, reason = isemptyreason(reason), caseid = caseid, dmsuccess = dmsuccess)
         return
         
     async def enablereports(self, context, channel, linkedthread):
@@ -538,7 +538,9 @@ class cmdmanager:
     async def assign(self, context, target, assigner = False, reason = False, remove = False, root = False):
         author = getauthor(context)
         commandpermissionlevel = 2
-        if assigner or root:
+        if assigner:
+            commandpermissionlevel = 3
+        if root:
             commandpermissionlevel = 4
         canrun = await self.pm.canrun(context, author, target = target, commandpermissionlevel = commandpermissionlevel, useroverride = True, shoulderoverride = True)
         if not canrun:
